@@ -3,14 +3,16 @@ use std::collections::HashMap;
 mod matter;
 use matter::element::Element;
 
+mod periodic_table;
+use periodic_table::PeriodicTable;
+
 mod parser;
 use parser::parse;
 
 fn main() {
-    let periodic_table: HashMap<String, Element> = match get_periodic_table() {
-        Err(e) => { println!("{e}"); return; },
-        Ok(t) => t,
-    };
+    // periodic table example
+    let periodic_table = PeriodicTable::new().unwrap();
+    println!("{}", periodic_table.get("Cr").unwrap().a_rm);
 
     let ss = &parse(String::from("H2SO4 + AlOHCO3, AgCl"), &periodic_table).unwrap();
     use crate::matter::substance::SubstanceClass;

@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 // pure chemical element
 #[derive(Clone, Serialize, Deserialize, Debug)]
