@@ -7,19 +7,17 @@ mod periodic_table;
 use periodic_table::PeriodicTable;
 
 mod parser;
-use parser::parse;
 
 fn main() {
     // periodic table example
     let periodic_table = PeriodicTable::new().unwrap();
     println!("{}", periodic_table.get("Cr").unwrap().a_rm);
 
-    let ss = &parse(String::from("H2SO4 + AlOHCO3, AgCl"), &periodic_table).unwrap();
-    use crate::matter::substance::SubstanceClass;
-    assert!(ss[0].class == SubstanceClass::Acid);
-    assert!(ss[1].class == SubstanceClass::Salt);
-    assert!(ss[2].class == SubstanceClass::Salt);
-    assert!(ss[1].content.get("OH").is_some());
+    use crate::matter::substance::*;
+
+    let alohco3 = Substance::from_string(&"AlOHCO3", &periodic_table).unwrap();
+    assert!(alohco3.class == SubstanceClass::Salt);
+    assert!(alohco3.content.get("OH").is_some());
 }
 
 fn get_periodic_table() -> Result<HashMap<String, Element>, &'static str> {

@@ -1,28 +1,9 @@
-use crate::{
-    matter::{element::Element, substance::*},
-    periodic_table::PeriodicTable,
-};
+use crate::{matter::element::Element, periodic_table::PeriodicTable};
 use std::collections::HashMap;
 
-pub fn parse(
-    reagents: String,
-    periodic_table: &PeriodicTable,
-) -> Result<Vec<Substance>, &'static str> {
-    let mut res = Vec::new();
-    let es = collect_elements(reagents, periodic_table)?;
-    for e in es {
-        match Substance::from_elements(e) {
-            Ok(s) => res.push(s),
-            Err(e) => return Err(e),
-        }
-    }
-
-    Ok(res)
-}
-
 // no regex, as other not-really-needed third-party crates
-fn collect_elements(
-    reagents: String,
+pub fn collect_elements(
+    reagents: &str,
     periodic_table: &PeriodicTable,
 ) -> Result<Vec<HashMap<String, (Element, u8)>>, &'static str> {
     let mut substances = Vec::<HashMap<String, (Element, u8)>>::new();

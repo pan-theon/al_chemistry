@@ -1,6 +1,9 @@
 use super::element::Element;
 use std::collections::HashMap;
 
+use crate::parser;
+use crate::periodic_table::PeriodicTable;
+
 #[derive(PartialEq)]
 pub enum SubstanceClass {
     Simple,
@@ -39,6 +42,13 @@ impl SubstanceBlock {
 
 // Not one great distrubutor, but many small - one for every SubstanceClass
 impl Substance {
+    pub fn from_string(s: &str, p_t: &PeriodicTable) -> Result<Self, &'static str> {
+        let mut e = parser::collect_elements(s, p_t)?;
+        if e.len() != 1 {
+            return Err(&"There's must be only one substance");
+        }
+        Self::from_elements(e.swap_remove(0))
+    }
     pub fn from_elements(e: HashMap<String, (Element, u8)>) -> Result<Self, &'static str> {
         let checkers: Vec<
             fn(HashMap<String, (Element, u8)>) -> Result<Self, HashMap<String, (Element, u8)>>,
