@@ -31,8 +31,7 @@ fn get_periodic_table() -> Result<HashMap<String, Element>, &'static str> {
     let table_file = fs::read_to_string(".applications/periodic_table.json");
     let table: String;
     match table_file {
-        Err(_) => return
-            Err(&"Unable to open file '.applications/periodic_table.json'"),
+        Err(_) => return Err(&"Unable to open file '.applications/periodic_table.json'"),
         Ok(t) => table = t,
     };
 
