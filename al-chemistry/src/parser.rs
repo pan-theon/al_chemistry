@@ -4,7 +4,7 @@ use crate::{
 };
 use std::collections::HashMap;
 
-pub fn parse(reagents: String, periodic_table: &HashMap<String, Element>)
+pub fn parse(reagents: String, periodic_table: &PeriodicTable)
     -> Result<Vec<Substance>, &'static str>
 {
     let mut res = Vec::new();
@@ -55,7 +55,7 @@ fn collect_elements(
 
         if let Some(v) = substance.get_mut(&element) {
             v.1 += i;
-        }
+        } else { substance.insert(element, (el, i)); }
 
         if c < Some('A') || c > Some('Z') || c == None {
             substances.push(substance);
