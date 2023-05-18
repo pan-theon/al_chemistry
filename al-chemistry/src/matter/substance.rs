@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use crate::parser;
 use crate::periodic_table::PeriodicTable;
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum SubstanceClass {
     Simple,
     Hydride,
@@ -16,12 +16,14 @@ pub enum SubstanceClass {
 }
 
 // something atomic - atom, ion, group or remainder
+#[derive(Debug)]
 pub struct SubstanceBlock {
     // elements with indexes
     pub content: HashMap<String, (Element, u8)>,
     pub oxidation_state: i8,
 }
 
+#[derive(Debug)]
 pub struct Substance {
     pub content: HashMap<String, (SubstanceBlock, u8)>,
     pub class: SubstanceClass,
