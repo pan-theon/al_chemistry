@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-
 mod matter;
-use matter::element::Element;
 
 mod periodic_table;
 use periodic_table::PeriodicTable;
@@ -18,4 +15,10 @@ fn main() {
     let alohco3 = Substance::from_string(&"Al(OH)CO3", &periodic_table).unwrap();
     assert!(alohco3.class == SubstanceClass::Salt);
     assert!(alohco3.content.get("OH").is_some());
+
+    let t = Substance::from_string(&"NaAlO",  &periodic_table).unwrap();
+    assert!(t.class == SubstanceClass::Salt);
+
+    let t = Substance::from_string(&"Al(OH)2Cl",  &periodic_table).unwrap();
+    assert!(t.class == SubstanceClass::Salt);
 }
