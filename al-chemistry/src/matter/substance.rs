@@ -29,6 +29,20 @@ pub struct Substance {
     pub class: SubstanceClass,
 }
 
+impl PartialEq for Substance {
+    fn eq(&self, other: &Self) -> bool {
+        if self.class != other.class || self.content.len() != other.content.len() {
+            return false;
+        }
+        for key in self.content.keys() {
+            if !other.content.contains_key(key) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
 // The idea: Substance itself determines its class
 // and calculates oxidation_states of its SubstanceBlocks
 // (not the parser)
