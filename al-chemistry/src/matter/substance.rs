@@ -1,5 +1,6 @@
 use super::element::Element;
 use std::collections::HashMap;
+use std::collections::BTreeSet;
 
 use crate::parser;
 use crate::periodic_table::PeriodicTable;
@@ -345,55 +346,34 @@ impl Substance {
         }
 
         // there must be oxidant and Me
-        if antiMe.len() == 0
-            || (Me.len() == 0 && amphMe.len() == 0)
-            || (antiMe[antiMe.len() - 1].1 .0.group <= 15
-                && antiMe[antiMe.len() - 1].1 .0.electronegativity < 2.8
-                && o.is_none())
-        {
-            Me.append(&mut antiMe);
-            Me.append(&mut amphMe);
-            if let Some(h) = h {
-                Me.push(h);
+        let mut parts = [&mut antiMe, &mut Me];
+        for part in &mut parts {
+            if part.len() == 0 {
+                if amphMe.len() == 0 {
+                    return not_salt(Me, antiMe, amphMe, o, h);
+                }
+                part.push(amphMe.swap_remove(0));
             }
-            if let Some(o) = o {
-                Me.push(o);
-            }
-
-            let mut err = HashMap::new();
-            for m in Me {
-                err.insert(m.0, m.1);
-            }
-            return Err(err);
-        }
-        if Me.len() == 0 {
-            Me.push(amphMe.swap_remove(0));
         }
         let mut content = HashMap::new();
         // and then rushed...
         if let Some(mut o) = o {
-            if antiMe.len() == 0 {
-                if amphMe.len() == 0 {
-                    Me.push(o);
-                    if let Some(h) = h {
-                        Me.push(h);
-                    }
-
-                    let mut err = HashMap::new();
-                    for m in Me {
-                        err.insert(m.0, m.1);
-                    }
-                    return Err(err);
-                }
-                antiMe.push(amphMe.swap_remove(0))
-            }
             let gcd = gcd(o.1 .1, antiMe[antiMe.len() - 1].1 .1);
             // try to decide whether it's base or acid salt
             if let Some(mut h) = h {
                 // possible valencies of acid residue
-                let mut vacant_es = [0_i16, 0_i16];
+                let mut h_vacant_e = Vec::<i16>::new();
+                let mut oh_vacant_e = Vec::<i16>::new();
+                let h_oh = [&mut h_vacant_e, &mut oh_vacant_e];
                 for i in 0..2 {
+                    let valencies = &antiMe[antiMe.len() - 1].1 .0.valencies;
                     let n_o = (i16::from(o.1 .1 / gcd) - i16::from(h.1 .1 * i)) << 1;
+                    if n_o == 0 {
+                        for v in valencies {
+                            h_oh[i as usize].push(*v as i16);
+                        }
+                        continue;
+                    }
                     for val in antiMe[antiMe.len() - 1].1 .0.valencies.iter() {
                         // abuse fact, that antiMe linked only with O
                         // full formula: val(antiMe) - 2 * n(=O)
@@ -404,44 +384,34 @@ impl Substance {
                             && guess_vacant_e <= *val as i16
                             && (guess_vacant_e & 1) == (*val & 1) as i16
                         {
-                            vacant_es[usize::from(i)] = guess_vacant_e as i16;
-                            break;
+                            h_oh[i as usize].push(guess_vacant_e);
                         }
                     }
                 }
-                if vacant_es[0] == 0 && vacant_es[1] == 0 {
-                    Me.append(&mut antiMe);
-                    Me.append(&mut vec![o, h]);
-
-                    let mut err = HashMap::new();
-                    for m in Me {
-                        err.insert(m.0, m.1);
-                    }
-                    return Err(err);
+                if h_vacant_e.len() == 0 && oh_vacant_e.len() == 0 {
+                    return not_salt(Me, antiMe, amphMe, Some(o), Some(h));
                 }
                 Me.append(&mut amphMe);
                 let mut me = Vec::new();
                 for i in 0..Me.len() {
                     if Me[i].1 .0.valencies.len() == 1 {
-                        vacant_es[0] -= Me[i].1 .0.valencies[0] as i16;
-                        vacant_es[1] -= Me[i].1 .0.valencies[0] as i16;
+                        let me_valency = Me[i].1 .0.valencies[0] as i16;
+
+                        h_vacant_e = h_vacant_e.iter().map(|x| x - me_valency).collect();
+                        oh_vacant_e = oh_vacant_e.iter().map(|x| x - me_valency).collect();
 
                         me.push(Me.swap_remove(0));
                     }
                 }
+                h_vacant_e.retain(|&x| x != 0);
+                oh_vacant_e.retain(|&x| x != 0);
                 // no more vacancies but there's still H
-                if Me.len() == 0 && vacant_es[0] == 0 && vacant_es[1] == 0 {
-                    antiMe.append(&mut me);
-                    antiMe.append(&mut vec![o, h]);
-
-                    let mut err = HashMap::new();
-                    for e in antiMe {
-                        err.insert(e.0, e.1);
-                    }
-                    return Err(err);
+                if Me.len() == 0 && h_vacant_e.len() == 0 && oh_vacant_e.len() == 0 {
+                    Me.append(&mut me);
+                    return not_salt(Me, antiMe, amphMe, Some(o), Some(h));
                 }
                 // Stars aligned, and so valencies of residue and other part of Salt
-                if Me.len() == 0 && -vacant_es[1] == h.1 .1 as i16 {
+                if Me.len() == 0 && oh_vacant_e.contains(&(0 - h.1 .1 as i16)) {
                     let oh_index = h.1 .1;
                     o.1 .1 -= h.1 .1;
                     let mut o_oh = o.clone();
@@ -451,7 +421,7 @@ impl Substance {
                         "OH".to_string(),
                         (SubstanceBlock::new(HashMap::from([o_oh, h])), oh_index),
                     );
-                } else if Me.len() == 0 && vacant_es[0] == h.1 .1 as i16 {
+                } else if Me.len() == 0 && h_vacant_e.contains(&(h.1 .1 as i16)) {
                     let h_index = h.1 .1;
                     h.1 .1 = 1;
                     content.insert(
@@ -461,10 +431,10 @@ impl Substance {
                 } else {
                     // Sorting through Me's with variable valencies
                     // As Rust docs say: "Use the Set when ... You just want a set."
-                    let mut variants = std::collections::BTreeSet::new();
+                    let mut variants = BTreeSet::new();
                     if Me.len() == 1 {
                         for v in Me[0].1 .0.valencies.iter() {
-                            variants.insert((Me[0].1 .1 * *v) as i16);
+                            variants.insert((*v * Me[0].1 .1) as i16);
                         }
                     }
                     for i in 0..Me.len() {
@@ -476,8 +446,14 @@ impl Substance {
                             }
                         }
                     }
+                    let h_e: BTreeSet<i16> = h_vacant_e.iter().map(|&x| x + h.1 .1 as i16).collect();
+                    let h_intersection: Vec<&i16> = variants.intersection(&h_e).collect();
+
+                    let oh_e: BTreeSet<i16> = oh_vacant_e.iter().map(|&x| x - h.1 .1 as i16).collect();
+                    let oh_intersection: Vec<&i16> = variants.intersection(&oh_e).collect();
+
                     // Well, it's base salt
-                    if variants.contains(&(vacant_es[1] + h.1 .1 as i16)) {
+                    if oh_intersection.len() != 0 {
                         let oh_index = h.1 .1;
                         o.1 .1 -= h.1 .1;
                         let mut o_oh = o.clone();
@@ -489,7 +465,7 @@ impl Substance {
                         );
                     }
                     // And that's acid salt
-                    else if variants.contains(&(vacant_es[0] - h.1 .1 as i16)) {
+                    else if h_intersection.len() != 0 {
                         let h_index = h.1 .1;
                         h.1 .1 = 1;
                         content.insert(
@@ -497,15 +473,7 @@ impl Substance {
                             (SubstanceBlock::new(HashMap::from([h])), h_index),
                         );
                     } else {
-                        Me.append(&mut me);
-                        Me.append(&mut antiMe);
-                        Me.append(&mut vec![o, h]);
-
-                        let mut err = HashMap::new();
-                        for m in Me {
-                            err.insert(m.0, m.1);
-                        }
-                        return Err(err);
+                        return not_salt(Me, antiMe, amphMe, Some(o), Some(h));
                     }
                 }
                 Me.append(&mut me);
@@ -557,4 +525,32 @@ fn gcd(mut a: u8, mut b: u8) -> u8 {
         (1, _) | (_, 1) => 1,
         (a, b) => gcd(b, a % b),
     }
+}
+
+fn not_salt(
+    me: Vec<(String, (Element, u8))>,
+    amph_me: Vec<(String, (Element, u8))>,
+    anti_me: Vec<(String, (Element, u8))>,
+    h: Option<(String, (Element, u8))>,
+    o: Option<(String, (Element, u8))>
+) -> Result<Substance, HashMap<String, (Element, u8)>> {
+    let mut err = HashMap::new();
+
+    for m in me {
+        err.insert(m.0, m.1);
+    }
+    for m in anti_me {
+        err.insert(m.0, m.1);
+    }
+    for m in amph_me {
+        err.insert(m.0, m.1);
+    }
+    if let Some(o) = o {
+        err.insert(o.0, o.1);
+    }
+    if let Some(h) = h {
+        err.insert(h.0, h.1);
+    }
+
+    Err(err)
 }
