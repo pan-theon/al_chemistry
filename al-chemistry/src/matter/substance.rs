@@ -1,6 +1,6 @@
 use super::element::Element;
-use std::collections::HashMap;
 use std::collections::BTreeSet;
+use std::collections::HashMap;
 
 use crate::parser;
 use crate::periodic_table::PeriodicTable;
@@ -446,10 +446,12 @@ impl Substance {
                             }
                         }
                     }
-                    let h_e: BTreeSet<i16> = h_vacant_e.iter().map(|&x| x + h.1 .1 as i16).collect();
+                    let h_e: BTreeSet<i16> =
+                        h_vacant_e.iter().map(|&x| x + h.1 .1 as i16).collect();
                     let h_intersection: Vec<&i16> = variants.intersection(&h_e).collect();
 
-                    let oh_e: BTreeSet<i16> = oh_vacant_e.iter().map(|&x| x - h.1 .1 as i16).collect();
+                    let oh_e: BTreeSet<i16> =
+                        oh_vacant_e.iter().map(|&x| x - h.1 .1 as i16).collect();
                     let oh_intersection: Vec<&i16> = variants.intersection(&oh_e).collect();
 
                     // Well, it's base salt
@@ -532,7 +534,7 @@ fn not_salt(
     amph_me: Vec<(String, (Element, u8))>,
     anti_me: Vec<(String, (Element, u8))>,
     h: Option<(String, (Element, u8))>,
-    o: Option<(String, (Element, u8))>
+    o: Option<(String, (Element, u8))>,
 ) -> Result<Substance, HashMap<String, (Element, u8)>> {
     let mut err = HashMap::new();
 
