@@ -8,3 +8,7 @@ pub fn gcd(mut a: u8, mut b: u8) -> u8 {
         (a, b) => gcd(b, a % b),
     }
 }
+
+pub fn lcm(a: u8, b: u8) -> u8 {
+    a * b / gcd(a, b)
+}
