@@ -2,6 +2,7 @@ use super::element::Element;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
 
+use crate::math_util::gcd;
 use crate::parser;
 use crate::periodic_table::PeriodicTable;
 
@@ -536,17 +537,6 @@ impl Substance {
             content,
             class: SubstanceClass::Salt,
         })
-    }
-}
-
-fn gcd(mut a: u8, mut b: u8) -> u8 {
-    if b > a {
-        (a, b) = (b, a);
-    }
-    match (a, b) {
-        (0, x) | (x, 0) => x,
-        (1, _) | (_, 1) => 1,
-        (a, b) => gcd(b, a % b),
     }
 }
 
