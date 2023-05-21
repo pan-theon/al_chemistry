@@ -33,7 +33,7 @@ pub struct SubstanceBlock {
     pub oxidation_state: i8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Substance {
     pub content: HashMap<String, (SubstanceBlock, u8)>,
     pub class: SubstanceClass,
