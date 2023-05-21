@@ -12,7 +12,7 @@ const METALLS: [&str; 29] = [
     "Co", "Ni", "Sn", "Pb", "H", "Sb", "Bi", "Cu", "Hg", "Ag", "Pd", "Pt", "Au",
 ];
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SubstanceClass {
     Simple,
     SimpleMetall,
