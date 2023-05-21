@@ -25,7 +25,7 @@ pub enum SubstanceClass {
 }
 
 // something atomic - atom, ion, group or remainder
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SubstanceBlock {
     // elements with indexes
     pub content: HashMap<String, (Element, u8)>,
