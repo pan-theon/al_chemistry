@@ -5,9 +5,17 @@ use std::collections::HashMap;
 use crate::parser;
 use crate::periodic_table::PeriodicTable;
 
+// Electrochmical series of metalls. Where:
+// from left to right the standard electrochemical potential increases
+const METALLS: [&str; 29] = [
+    "Li", "Cs", "Rb", "K", "Ba", "Sr", "Ca", "Na", "Mg", "Al", "Ti", "Mn", "Zn", "Cr", "Fe", "Cd",
+    "Co", "Ni", "Sn", "Pb", "H", "Sb", "Bi", "Cu", "Hg", "Ag", "Pd", "Pt", "Au",
+];
+
 #[derive(Debug, PartialEq)]
 pub enum SubstanceClass {
     Simple,
+    SimpleMetall,
     Hydride,
     Oxide,
     Peroxide,
@@ -98,12 +106,25 @@ impl Substance {
             return Err(e);
         }
 
+        let mut is_metall = false;
         let mut content = HashMap::<String, (SubstanceBlock, u8)>::new();
         let (k, mut v) = e.iter_mut().next().unwrap();
         let sb_index = v.1;
         v.1 = 1;
 
+        if METALLS.contains(&k.as_str()) {
+            is_metall = true;
+        }
+
         content.insert(k.clone(), (SubstanceBlock::new(e), sb_index));
+
+        if is_metall {
+            return Ok(Self {
+                content,
+                class: SubstanceClass::SimpleMetall,
+            });
+        }
+
         Ok(Self {
             content,
             class: SubstanceClass::Simple,
