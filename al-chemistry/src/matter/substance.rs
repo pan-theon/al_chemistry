@@ -1,13 +1,22 @@
 use super::element::Element;
-use std::collections::HashMap;
 use std::collections::BTreeSet;
+use std::collections::HashMap;
 
+use crate::math_util::gcd;
 use crate::parser;
 use crate::periodic_table::PeriodicTable;
 
-#[derive(PartialEq)]
+// Electrochmical series of metalls. Where:
+// from left to right the standard electrochemical potential increases
+const METALLS: [&str; 29] = [
+    "Li", "Cs", "Rb", "K", "Ba", "Sr", "Ca", "Na", "Mg", "Al", "Ti", "Mn", "Zn", "Cr", "Fe", "Cd",
+    "Co", "Ni", "Sn", "Pb", "H", "Sb", "Bi", "Cu", "Hg", "Ag", "Pd", "Pt", "Au",
+];
+
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SubstanceClass {
     Simple,
+    SimpleMetall,
     Hydride,
     Oxide,
     Peroxide,
@@ -17,15 +26,31 @@ pub enum SubstanceClass {
 }
 
 // something atomic - atom, ion, group or remainder
+#[derive(Debug, Clone)]
 pub struct SubstanceBlock {
     // elements with indexes
     pub content: HashMap<String, (Element, u8)>,
     pub oxidation_state: i8,
 }
 
+#[derive(Debug, Clone)]
 pub struct Substance {
     pub content: HashMap<String, (SubstanceBlock, u8)>,
     pub class: SubstanceClass,
+}
+
+impl PartialEq for Substance {
+    fn eq(&self, other: &Self) -> bool {
+        if self.class != other.class || self.content.len() != other.content.len() {
+            return false;
+        }
+        for key in self.content.keys() {
+            if !other.content.contains_key(key) {
+                return false;
+            }
+        }
+        true
+    }
 }
 
 // The idea: Substance itself determines its class
@@ -82,12 +107,25 @@ impl Substance {
             return Err(e);
         }
 
+        let mut is_metall = false;
         let mut content = HashMap::<String, (SubstanceBlock, u8)>::new();
         let (k, mut v) = e.iter_mut().next().unwrap();
         let sb_index = v.1;
         v.1 = 1;
 
+        if METALLS.contains(&k.as_str()) {
+            is_metall = true;
+        }
+
         content.insert(k.clone(), (SubstanceBlock::new(e), sb_index));
+
+        if is_metall {
+            return Ok(Self {
+                content,
+                class: SubstanceClass::SimpleMetall,
+            });
+        }
+
         Ok(Self {
             content,
             class: SubstanceClass::Simple,
@@ -430,10 +468,12 @@ impl Substance {
                             }
                         }
                     }
-                    let h_e: BTreeSet<i16> = h_vacant_e.iter().map(|&x| x + h.1 .1 as i16).collect();
+                    let h_e: BTreeSet<i16> =
+                        h_vacant_e.iter().map(|&x| x + h.1 .1 as i16).collect();
                     let h_intersection: Vec<&i16> = variants.intersection(&h_e).collect();
 
-                    let oh_e: BTreeSet<i16> = oh_vacant_e.iter().map(|&x| x - h.1 .1 as i16).collect();
+                    let oh_e: BTreeSet<i16> =
+                        oh_vacant_e.iter().map(|&x| x - h.1 .1 as i16).collect();
                     let oh_intersection: Vec<&i16> = variants.intersection(&oh_e).collect();
 
                     // Well, it's base salt
@@ -500,23 +540,12 @@ impl Substance {
     }
 }
 
-fn gcd(mut a: u8, mut b: u8) -> u8 {
-    if b > a {
-        (a, b) = (b, a);
-    }
-    match (a, b) {
-        (0, x) | (x, 0) => x,
-        (1, _) | (_, 1) => 1,
-        (a, b) => gcd(b, a % b),
-    }
-}
-
 fn not_salt(
     me: Vec<(String, (Element, u8))>,
     amph_me: Vec<(String, (Element, u8))>,
     anti_me: Vec<(String, (Element, u8))>,
     h: Option<(String, (Element, u8))>,
-    o: Option<(String, (Element, u8))>
+    o: Option<(String, (Element, u8))>,
 ) -> Result<Substance, HashMap<String, (Element, u8)>> {
     let mut err = HashMap::new();
 

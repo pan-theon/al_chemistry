@@ -19,8 +19,7 @@ pub fn collect_elements(
     let mut is_closed = false;
     let mut check = Vec::<u8>::new();
     while let Some(c) = chars.next() {
-        if c >= '0' && c <= '9'
-        || c >= '₀' && c <= '₉' {
+        if c >= '0' && c <= '9' || c >= '₀' && c <= '₉' {
             index = format!("{}{}", index, c);
             continue;
         }
