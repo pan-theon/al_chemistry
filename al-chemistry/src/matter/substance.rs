@@ -1,6 +1,7 @@
 use super::element::Element;
 use std::collections::BTreeSet;
 use std::collections::HashMap;
+use std::fmt;
 
 use crate::math_util::gcd;
 use crate::parser;
@@ -33,6 +34,19 @@ pub struct SubstanceBlock {
     pub oxidation_state: i8,
 }
 
+impl fmt::Display for SubstanceBlock {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut res = String::new();
+        for e in &self.content {
+            res += e.0;
+            if e.1 .1 > 1 {
+                res = format!("{}{}", res, char::from_u32(0x2080 + e.1 .1 as u32).unwrap());
+            }
+        }
+        write!(f, "{}", res)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Substance {
     pub content: HashMap<String, (SubstanceBlock, u8)>,
@@ -50,6 +64,16 @@ impl PartialEq for Substance {
             }
         }
         true
+    }
+}
+
+impl fmt::Display for Substance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut res = String::new();
+        for (sb, _) in self.content.values() {
+            res = format!("{}{}", res, sb);
+        }
+        write!(f, "{}", res)
     }
 }
 
