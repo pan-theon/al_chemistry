@@ -145,28 +145,20 @@ impl Substance {
             return Err(e);
         }
 
-        let mut is_metall = false;
+        let mut class = SubstanceClass::Simple;
         let mut content = HashMap::<String, (SubstanceBlock, u8)>::new();
         let (k, mut v) = e.iter_mut().next().unwrap();
         let sb_index = v.1;
         v.1 = 1;
 
         if METALLS.contains(&k.as_str()) {
-            is_metall = true;
+            class = SubstanceClass::SimpleMetall;
         }
 
         content.insert(k.clone(), (SubstanceBlock::new(e), sb_index));
-
-        if is_metall {
-            return Ok(Self {
-                content,
-                class: SubstanceClass::SimpleMetall,
-            });
-        }
-
         Ok(Self {
             content,
-            class: SubstanceClass::Simple,
+            class,
         })
     }
 
