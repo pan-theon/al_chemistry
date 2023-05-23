@@ -80,8 +80,8 @@ impl Substance {
             fn(HashMap<String, (Element, u8)>) -> Result<Self, HashMap<String, (Element, u8)>>,
         > = vec![
             Self::try_hydride,
-            Self::try_oxide,
             Self::try_peroxide,
+            Self::try_oxide,
             Self::try_base,
             Self::try_salt,
             Self::try_acid,
