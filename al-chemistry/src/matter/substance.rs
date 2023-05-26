@@ -88,6 +88,7 @@ impl fmt::Display for Substance {
 }
 
 // Not one great distrubutor, but many small - one for every SubstanceClass
+/*
 impl Substance {
     pub fn from_string(s: &str, p_t: &PeriodicTable) -> Result<Self, &'static str> {
         let mut e = parser::collect_elements(s, p_t)?;
@@ -687,3 +688,4 @@ fn build_salt(
         class: SubstanceClass::Salt,
     }
 }
+*/

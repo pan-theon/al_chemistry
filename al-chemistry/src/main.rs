@@ -5,8 +5,10 @@ use periodic_table::PeriodicTable;
 
 mod parser;
 
+/*
 mod reaction;
 use reaction::Reaction;
+*/
 
 mod math_util;
 
@@ -17,6 +19,7 @@ fn main() {
 
     use crate::matter::substance::*;
 
+    /*
     let alohco3 = Substance::from_string(&"Al(OH)CO3", &periodic_table).unwrap();
     assert!(alohco3.class == SubstanceClass::Salt);
     assert!(alohco3.content.get("OH").is_some());
@@ -47,4 +50,5 @@ fn main() {
         Substance::from_string("O2", &periodic_table).unwrap(),
     ]);
     dbg!(reaction);
+    */
 }
