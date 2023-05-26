@@ -31,6 +31,7 @@ pub struct SubstanceBlock {
     pub element: Element,
     pub index: u8,
     pub oxidation_state: i8,
+}
 
 // The idea: Substance itself determines its class
 // and calculates oxidation_states of its SubstanceBlocks
@@ -47,17 +48,26 @@ impl SubstanceBlock {
 
 #[derive(Debug, Clone)]
 pub struct Substance {
-    pub content: HashMap<String, (SubstanceBlock, u8)>,
+    pub me: HashMap<String, SubstanceBlock>,
+    pub anti_me: HashMap<String, SubstanceBlock>,
     pub class: SubstanceClass,
 }
 
 impl PartialEq for Substance {
     fn eq(&self, other: &Self) -> bool {
-        if self.class != other.class || self.content.len() != other.content.len() {
+        if self.class != other.class
+            || self.me.len() != other.me.len()
+            || self.anti_me.len() != other.anti_me.len()
+        {
             return false;
         }
-        for key in self.content.keys() {
-            if !other.content.contains_key(key) {
+        for m in self.me.keys() {
+            if !other.me.contains_key(m) {
+                return false;
+            }
+        }
+        for a in self.anti_me.keys() {
+            if !other.anti_me.contains_key(a) {
                 return false;
             }
         }
@@ -68,8 +78,10 @@ impl PartialEq for Substance {
 impl fmt::Display for Substance {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut res = String::new();
-        for (sb, _) in self.content.values() {
-            res = format!("{}{}", res, sb);
+        for group in [&self.me, &self.anti_me] {
+            for (name, sb) in group {
+                res = format!("{}{}{}", res, name, sb.index);
+            }
         }
         write!(f, "{}", res)
     }
