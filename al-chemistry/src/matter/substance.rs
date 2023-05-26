@@ -88,7 +88,6 @@ impl fmt::Display for Substance {
 }
 
 // Not one great distrubutor, but many small - one for every SubstanceClass
-/*
 impl Substance {
     pub fn from_string(s: &str, p_t: &PeriodicTable) -> Result<Self, &'static str> {
         let mut e = parser::collect_elements(s, p_t)?;
@@ -97,16 +96,18 @@ impl Substance {
         }
         Self::from_elements(e.swap_remove(0))
     }
-    pub fn from_elements(e: HashMap<String, (Element, u8)>) -> Result<Self, &'static str> {
+    pub fn from_elements(e: HashMap<String, SubstanceBlock>) -> Result<Self, &'static str> {
         let checkers: Vec<
-            fn(HashMap<String, (Element, u8)>) -> Result<Self, HashMap<String, (Element, u8)>>,
+            fn(HashMap<String, SubstanceBlock>) -> Result<Self, HashMap<String, SubstanceBlock>>,
         > = vec![
+            /*
             Self::try_hydride,
             Self::try_peroxide,
             Self::try_oxide,
             Self::try_base,
             Self::try_salt,
             Self::try_acid,
+            */
         ];
         let mut res = Self::try_simple(e);
         for checker in checkers {
@@ -157,6 +158,7 @@ impl Substance {
         Ok(Self { content, class })
     }
 
+    /*
     fn try_hydride(
         mut e: HashMap<String, (Element, u8)>,
     ) -> Result<Self, HashMap<String, (Element, u8)>> {
