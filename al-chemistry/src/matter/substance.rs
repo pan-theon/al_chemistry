@@ -1,5 +1,4 @@
 use super::element::Element;
-use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -47,6 +46,19 @@ impl fmt::Display for SubstanceBlock {
     }
 }
 
+// The idea: Substance itself determines its class
+// and calculates oxidation_states of its SubstanceBlocks
+// (not the parser)
+impl SubstanceBlock {
+    pub fn new(content: HashMap<String, (Element, u8)>, oxidation_state: i8) -> Self {
+        Self {
+            content,
+            // calculate after Substance was built
+            oxidation_state,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Substance {
     pub content: HashMap<String, (SubstanceBlock, u8)>,
@@ -74,19 +86,6 @@ impl fmt::Display for Substance {
             res = format!("{}{}", res, sb);
         }
         write!(f, "{}", res)
-    }
-}
-
-// The idea: Substance itself determines its class
-// and calculates oxidation_states of its SubstanceBlocks
-// (not the parser)
-impl SubstanceBlock {
-    pub fn new(content: HashMap<String, (Element, u8)>) -> Self {
-        Self {
-            content,
-            // calculate after Substance was built
-            oxidation_state: 0,
-        }
     }
 }
 
@@ -145,17 +144,17 @@ impl Substance {
             return Err(e);
         }
 
-        let mut class = SubstanceClass::Simple;
         let mut content = HashMap::<String, (SubstanceBlock, u8)>::new();
         let (k, mut v) = e.iter_mut().next().unwrap();
         let sb_index = v.1;
         v.1 = 1;
 
-        if METALLS.contains(&k.as_str()) {
-            class = SubstanceClass::SimpleMetall;
-        }
+        let class = match METALLS.contains(&k.as_str()) {
+            true => SubstanceClass::SimpleMetall,
+            false => SubstanceClass::Simple,
+        };
 
-        content.insert(k.clone(), (SubstanceBlock::new(e), sb_index));
+        content.insert(k.clone(), (SubstanceBlock::new(e, 0), sb_index));
         Ok(Self {
             content,
             class,
@@ -180,14 +179,22 @@ impl Substance {
             return Err(e);
         }
 
+        let el_oxy = match other_oxy(-1, el.1 .1) {
+            Some(oxy) => oxy,
+            None => {
+                e.insert(h.0, h.1);
+                return Err(e);
+            }
+        };
+
         let indexes = [el.1 .1, h.1 .1];
         el.1 .1 = 1;
         h.1 .1 = 1;
         let h = HashMap::from([h]);
 
-        let mut content = HashMap::<String, (SubstanceBlock, u8)>::new();
-        content.insert(el.0.clone(), (SubstanceBlock::new(e), indexes[0]));
-        content.insert("H".to_string(), (SubstanceBlock::new(h), indexes[1]));
+        let mut content = HashMap::new();
+        content.insert(el.0.clone(), (SubstanceBlock::new(e, el_oxy), indexes[0]));
+        content.insert("H".to_string(), (SubstanceBlock::new(h, -1), indexes[1]));
 
         Ok(Self {
             content,
@@ -208,14 +215,22 @@ impl Substance {
         };
 
         let mut el = e.iter_mut().next().unwrap();
+        let el_oxy = match other_oxy(-2, el.1 .1) {
+            Some(oxy) => oxy,
+            None => {
+                e.insert(o.0, o.1);
+                return Err(e);
+            },
+        };
+        
         let indexes = [el.1 .1, o.1 .1];
         el.1 .1 = 1;
         o.1 .1 = 1;
         let o = HashMap::from([o]);
 
         let mut content = HashMap::new();
-        content.insert(el.0.clone(), (SubstanceBlock::new(e), indexes[0]));
-        content.insert("O".to_string(), (SubstanceBlock::new(o), indexes[1]));
+        content.insert(el.0.clone(), (SubstanceBlock::new(e, el_oxy), indexes[0]));
+        content.insert("O".to_string(), (SubstanceBlock::new(o, -2), indexes[1]));
 
         Ok(Self {
             content,
@@ -246,13 +261,21 @@ impl Substance {
             return Err(e);
         }
 
+        let el_oxy = match other_oxy(-1, el.1 .1) {
+            Some(oxy) => oxy,
+            None => {
+                e.insert(o2.0, o2.1);
+                return Err(e);
+            }
+        };
+
         let el_index = el.1 .1;
         el.1 .1 = 1;
         let o2 = HashMap::from([o2]);
 
         let mut content = HashMap::new();
-        content.insert(el.0.clone(), (SubstanceBlock::new(e), el_index));
-        content.insert("02".to_string(), (SubstanceBlock::new(o2), 1));
+        content.insert(el.0.clone(), (SubstanceBlock::new(e, el_oxy), el_index));
+        content.insert("0".to_string(), (SubstanceBlock::new(o2, -1), 2));
 
         Ok(Self {
             content,
@@ -282,16 +305,17 @@ impl Substance {
 
         let mut content = HashMap::new();
         let el = e.iter_mut().next().unwrap();
+
         // exception - NH₄OH
         if el.0 == "N" && el.1 .1 == 1 && o.1 .1 == 1 && h.1 .1 == 5 {
             let mut h4 = h.clone();
             h4.1 .1 = 4;
             e.insert(h4.0, h4.1);
             h.1 .1 = 1;
-            content.insert("NH4".to_string(), (SubstanceBlock::new(e), 1));
+            content.insert("NH4".to_string(), (SubstanceBlock::new(e, 1), 1));
             content.insert(
                 "OH".to_string(),
-                (SubstanceBlock::new(HashMap::from([o, h])), 1),
+                (SubstanceBlock::new(HashMap::from([o, h]), -1), 1),
             );
 
             return Ok(Self {
@@ -299,6 +323,15 @@ impl Substance {
                 class: SubstanceClass::Base,
             });
         }
+
+        let el_oxy = match other_oxy(-1, el.1 .1) {
+            Some(oxy) => oxy,
+            None => {
+                e.insert(o.0, o.1);
+                e.insert(h.0, h.1);
+                return Err(e);
+            }
+        };
 
         if o.1.1 == h.1.1 &&
             // B-Si-As-Te-Po-Lv - border between Me and AntiMe
@@ -309,8 +342,8 @@ impl Substance {
             o.1 .1 = 1;
             h.1 .1 = 1;
             let oh = HashMap::from([o, h]);
-            content.insert(el.0.clone(), (SubstanceBlock::new(e), el_index));
-            content.insert("OH".to_string(), (SubstanceBlock::new(oh), oh_index));
+            content.insert(el.0.clone(), (SubstanceBlock::new(e, el_oxy), el_index));
+            content.insert("OH".to_string(), (SubstanceBlock::new(oh, -1), oh_index));
 
             return Ok(Self {
                 content,
@@ -355,9 +388,9 @@ impl Substance {
         let mut content = HashMap::new();
         content.insert(
             "H".to_string(),
-            (SubstanceBlock::new(HashMap::from([h])), h_index),
+            (SubstanceBlock::new(HashMap::from([h]), -1), h_index),
         );
-        content.insert(residue, (SubstanceBlock::new(e), 1));
+        content.insert(residue, (SubstanceBlock::new(e, -(h_index as i8)), 1));
 
         Ok(Self {
             content,
@@ -398,175 +431,103 @@ impl Substance {
         }
 
         // there must be oxidant and Me
-        let mut parts = [&mut antiMe, &mut Me];
-        for part in &mut parts {
-            if part.len() == 0 {
+        let parts = [&mut antiMe, &mut Me];
+        for i in 0..2 {
+            if parts[i].len() == 0 {
                 if amphMe.len() == 0 {
                     return not_salt(Me, antiMe, amphMe, o, h);
                 }
-                part.push(amphMe.swap_remove(0));
+                let idx = match i {
+                    1 => amphMe.len() - 1,
+                    n => n,
+                };
+                parts[i].push(amphMe.swap_remove(idx));
             }
         }
         let mut content = HashMap::new();
-        // and then rushed...
-        if let Some(mut o) = o {
-            let gcd = gcd(o.1 .1, antiMe[antiMe.len() - 1].1 .1);
-            // try to decide whether it's base or acid salt
-            if let Some(mut h) = h {
-                // possible valencies of acid residue
-                let mut h_vacant_e = Vec::<i16>::new();
-                let mut oh_vacant_e = Vec::<i16>::new();
-                let h_oh = [&mut h_vacant_e, &mut oh_vacant_e];
-                for i in 0..2 {
-                    let valencies = &antiMe[antiMe.len() - 1].1 .0.valencies;
-                    let n_o = (i16::from(o.1 .1 / gcd) - i16::from(h.1 .1 * i)) << 1;
-                    if n_o == 0 {
-                        for v in valencies {
-                            h_oh[i as usize].push(*v as i16);
-                        }
-                        continue;
-                    }
-                    for val in antiMe[antiMe.len() - 1].1 .0.valencies.iter() {
-                        // abuse fact, that antiMe linked only with O
-                        // full formula: val(antiMe) - 2 * n(=O)
-                        // where n(=O) := val(antiMe) - n(O)
-                        // and n(=O) - amount of doubly linked O - there's no link to them
-                        let guess_vacant_e: i16 = n_o - *val as i16;
-                        if guess_vacant_e >= 1
-                            && guess_vacant_e <= *val as i16
-                            && (guess_vacant_e & 1) == (*val & 1) as i16
-                        {
-                            h_oh[i as usize].push(guess_vacant_e);
-                        }
-                    }
-                }
-                if h_vacant_e.len() == 0 && oh_vacant_e.len() == 0 {
-                    return not_salt(Me, antiMe, amphMe, Some(o), Some(h));
-                }
-                Me.append(&mut amphMe);
-                let mut me = Vec::new();
-                for i in 0..Me.len() {
-                    if Me[i].1 .0.valencies.len() == 1 {
-                        let me_valency = Me[i].1 .0.valencies[0] as i16;
+        let mut me_idx = -1_i16;
+        let mes_val = mes_val_variants(&Me, &amphMe);
+        if let Some(mut h) = h.clone() {
+            if let Some(mut o) = o {
+                let h_o = o.clone();
+                let mut oh_o = o.clone();
 
-                        h_vacant_e = h_vacant_e.iter().map(|x| x - me_valency).collect();
-                        oh_vacant_e = oh_vacant_e.iter().map(|x| x - me_valency).collect();
+                antiMe.push(h_o);
+                let h_residue_oxis = residue_oxis_variants(&antiMe, h.1 .1 as i16);
+                antiMe.pop();
 
-                        me.push(Me.swap_remove(0));
-                    }
+                let o_g_h = o.1 .1 > h.1 .1;
+                if o_g_h {
+                    oh_o.1 .1 -= h.1 .1;
+                    antiMe.push(oh_o);
                 }
-                h_vacant_e.retain(|&x| x != 0);
-                oh_vacant_e.retain(|&x| x != 0);
-                // no more vacancies but there's still H
-                if Me.len() == 0 && h_vacant_e.len() == 0 && oh_vacant_e.len() == 0 {
-                    Me.append(&mut me);
-                    return not_salt(Me, antiMe, amphMe, Some(o), Some(h));
+                let oh_residue_oxis = residue_oxis_variants(&antiMe, -(h.1 .1 as i16));
+                if o_g_h {
+                    antiMe.pop();
                 }
-                // Stars aligned, and so valencies of residue and other part of Salt
-                if Me.len() == 0 && oh_vacant_e.contains(&(0 - h.1 .1 as i16)) {
-                    let oh_index = h.1 .1;
-                    o.1 .1 -= h.1 .1;
-                    let mut o_oh = o.clone();
-                    o_oh.1 .1 = 1;
-                    h.1 .1 = 1;
-                    content.insert(
-                        "OH".to_string(),
-                        (SubstanceBlock::new(HashMap::from([o_oh, h])), oh_index),
-                    );
-                } else if Me.len() == 0 && h_vacant_e.contains(&(h.1 .1 as i16)) {
-                    let h_index = h.1 .1;
-                    h.1 .1 = 1;
-                    content.insert(
-                        "H".to_string(),
-                        (SubstanceBlock::new(HashMap::from([h])), h_index),
-                    );
-                } else {
-                    // Sorting through Me's with variable valencies
-                    // As Rust docs say: "Use the Set when ... You just want a set."
-                    let mut variants = BTreeSet::new();
-                    if Me.len() == 1 {
-                        for v in Me[0].1 .0.valencies.iter() {
-                            variants.insert((*v * Me[0].1 .1) as i16);
+
+                let mut salt_type = "";
+                for oh_e in oh_residue_oxis {
+                    for m_i in 0..mes_val.len() {
+                        if -oh_e == mes_val[m_i] {
+                            me_idx = m_i as i16;
+                            salt_type = "OH";
+                            break;
                         }
                     }
-                    for i in 0..Me.len() {
-                        for i_i in Me[i].1 .0.valencies.iter() {
-                            for o in i + 1..Me.len() {
-                                for o_i in Me[o].1 .0.valencies.iter() {
-                                    variants.insert((i_i * Me[i].1 .1 + o_i * Me[o].1 .1) as i16);
-                                }
+                }
+                if salt_type.is_empty() {
+                    for h_e in h_residue_oxis {
+                        for m_i in 0..mes_val.len() {
+                            if -h_e == mes_val[m_i] {
+                                me_idx = m_i as i16;
+                                salt_type = "H";
+                                break;
                             }
                         }
                     }
-                    let h_e: BTreeSet<i16> =
-                        h_vacant_e.iter().map(|&x| x + h.1 .1 as i16).collect();
-                    let h_intersection: Vec<&i16> = variants.intersection(&h_e).collect();
-
-                    let oh_e: BTreeSet<i16> =
-                        oh_vacant_e.iter().map(|&x| x - h.1 .1 as i16).collect();
-                    let oh_intersection: Vec<&i16> = variants.intersection(&oh_e).collect();
-
-                    // Well, it's base salt
-                    if oh_intersection.len() != 0 {
-                        let oh_index = h.1 .1;
+                }
+                match salt_type {
+                    "OH" => {
                         o.1 .1 -= h.1 .1;
                         let mut o_oh = o.clone();
+                        let oh_idx = h.1 .1;
                         o_oh.1 .1 = 1;
                         h.1 .1 = 1;
-                        content.insert(
-                            "OH".to_string(),
-                            (SubstanceBlock::new(HashMap::from([o_oh, h])), oh_index),
-                        );
-                    }
-                    // And that's acid salt
-                    else if h_intersection.len() != 0 {
-                        let h_index = h.1 .1;
+                        
+                        content.insert("OH".to_string(), (SubstanceBlock::new(HashMap::from([o_oh, h]), -1), oh_idx));
+                    },
+                    "H" => {
+                        let h_idx = h.1 .1;
                         h.1 .1 = 1;
-                        content.insert(
-                            "H".to_string(),
-                            (SubstanceBlock::new(HashMap::from([h])), h_index),
-                        );
-                    } else {
-                        return not_salt(Me, antiMe, amphMe, Some(o), Some(h));
-                    }
+                        content.insert("H".to_string(), (SubstanceBlock::new(HashMap::from([h]), 1), h_idx));
+                    },
+                    _ => return not_salt(Me, amphMe, antiMe, Some(o), Some(h)),
+                };
+                if o.1 .1 > 0 {
+                    antiMe.push(o);
                 }
-                Me.append(&mut me);
+                return Ok(build_salt(Me, amphMe, me_idx as usize, antiMe, content));
             }
+            let h_idx = h.1 .1;
+            h.1 .1 = 1;
+            content.insert("H".to_string(), (SubstanceBlock::new(HashMap::from([h]), 1), h_idx));
+        } 
+        if let Some(o) = o.clone() {
             antiMe.push(o);
         }
-        // God does not play dice, but we do ;)
-        if amphMe.len() > 0 {
-            if antiMe.len() < 2 {
-                antiMe.push(amphMe.swap_remove(amphMe.len() - 1));
+        let residue_oxis = residue_oxis_variants(&antiMe, 0);
+        for res_i in residue_oxis {
+            for me_i in 0..mes_val.len() {
+                if -res_i == mes_val[me_i] {
+                    me_idx = me_i as i16;
+                }
             }
-            Me.append(&mut amphMe);
         }
-        // Whew! Now we need just to build the Salt
-        for mut m in Me {
-            let m_index = m.1 .1;
-            m.1 .1 = 1;
-            content.insert(
-                m.0.clone(),
-                (SubstanceBlock::new(HashMap::from([m])), m_index),
-            );
+        match me_idx {
+            -1 => not_salt(Me, amphMe, antiMe, o, h),
+            _ => Ok(build_salt(Me, amphMe, me_idx as usize, antiMe, content)),
         }
-        let mut residue_name = String::from(&antiMe[0].0);
-        let mut cd = antiMe[0].1 .1;
-        for i in 1..antiMe.len() {
-            cd = gcd(cd, antiMe[i].1 .1);
-            residue_name += &antiMe[i].0;
-        }
-        let mut residue = HashMap::new();
-        for mut am in antiMe {
-            am.1 .1 /= cd;
-            residue.insert(am.0, am.1);
-        }
-        content.insert(residue_name, (SubstanceBlock::new(residue), cd));
-
-        Ok(Substance {
-            content,
-            class: SubstanceClass::Salt,
-        })
     }
 }
 
@@ -596,4 +557,129 @@ fn not_salt(
     }
 
     Err(err)
+}
+
+fn other_oxy(c_oxy: i8, o_idx: u8) -> Option<i8> {
+    let c_oxy = c_oxy as i16;
+    let o_idx = o_idx as i16;
+    match c_oxy % o_idx {
+        0 => Some(-(c_oxy / o_idx) as i8),
+        _ => None,
+    }
+}
+
+fn mes_val_variants(
+    me: &Vec<(String, (Element, u8))>,
+    amphMe: &Vec<(String, (Element, u8))>,
+    ) -> Vec<i16> {
+    let mut me_val = 0_i16;
+    for (_, m) in me {
+        me_val += (m.0.valencies[0] * m.1) as i16;
+    }
+
+    if amphMe.len() == 0 {
+        return vec![me_val];
+    }
+    let mut len = 1;
+    for m in amphMe {
+        len *= m.1. 0.valencies.len();
+    }
+    let l = len;
+    let mut mes_val = vec![me_val; len];
+    for m in amphMe {
+        for i in 0..l / len {
+            for v_i in 0..m.1 .0.valencies.len() {
+                for j in 0..len / m.1 .0.valencies.len() {
+                    let idx = i * l / len + v_i * len / m.1 .0.valencies.len() + j;
+                    mes_val[idx] += (m.1 .0.valencies[0] * m.1 .1) as i16;
+                }
+            }
+        }
+        len /= m.1 .0.valencies.len();
+    }
+
+    mes_val
+}
+
+fn residue_oxis_variants(antiMe: &Vec<(String, (Element, u8))>, start: i16) -> Vec<i16> {
+    let oxidant = &antiMe[antiMe.len() - 1].1;
+    let oxidant_oxy = (oxidant.0.group as i16 - 18) * oxidant.1 as i16;
+
+    let mut len = 1;
+    for i in 0..antiMe.len() - 1 {
+        len *= antiMe[i].1 .0.valencies.len();
+    }
+    let l = len;
+    let mut residue_oxis = vec![oxidant_oxy + start; len];
+    for a in 0..antiMe.len() - 1 {
+        for i in 0..l / len {
+            for v_i in 0..antiMe[a].1 .0.valencies.len() {
+                for j in 0..len / antiMe[a].1 .0.valencies.len() {
+                    let idx = i * l / len + v_i * len / antiMe[a].1 .0.valencies.len() + j;
+                    residue_oxis[idx] += (antiMe[a].1 .0.valencies[v_i] * antiMe[a].1 .1) as i16;
+                }
+            }
+        }
+        len /= antiMe[a].1 .0.valencies.len();
+    }
+
+    residue_oxis
+}
+
+fn build_salt(
+    Me: Vec<(String, (Element, u8))>,
+    amphMe: Vec<(String, (Element, u8))>,
+    amphs_val_variant: usize,
+    antiMe: Vec<(String, (Element, u8))>,
+    mut content: HashMap<String, (SubstanceBlock, u8)>,
+    ) -> Substance {
+    let mut oxy = 0;
+    for mut m in Me {
+        let m_oxy = m.1 .0.valencies[0] as i8;
+        oxy += m_oxy;
+
+        let m_idx = m.1. 1;
+        m.1 .1 = 1;
+        content.insert(
+            m.0.clone(),
+            (SubstanceBlock::new(HashMap::from([m]), m_oxy), m_idx),
+        );
+    }
+
+    let mut len = 1;
+    for (_, m) in &amphMe {
+        len *= m.0.valencies.len();
+    }
+    for mut m in amphMe {
+        let mut m_val_idx = amphs_val_variant % len;
+        len /= m.1 .0.valencies.len();
+        m_val_idx /= len;
+        let m_oxy = m.1 .0.valencies[m_val_idx] as i8;
+        oxy += m_oxy;
+
+        let m_idx = m.1 .1;
+        m.1 .1 = 1;
+        content.insert(
+            m.0.clone(),
+            (SubstanceBlock::new(HashMap::from([m]), m_oxy), m_idx),
+        );
+    }
+
+    let mut residue_name = String::from(&antiMe[0].0);
+    let mut cd = antiMe[0].1 .1;
+    for i in 1..antiMe.len() {
+        cd = gcd(cd, antiMe[i].1 .1);
+        residue_name += &antiMe[i].0;
+    }
+    let mut residue = HashMap::new();
+    for mut am in antiMe {
+        am.1 .1 /= cd;
+        residue.insert(am.0, am.1);
+    }
+    content.insert(residue_name, (SubstanceBlock::new(residue, -oxy), cd));
+
+    Substance {
+        content,
+        class: SubstanceClass::Salt,
+    }
 }
