@@ -155,10 +155,7 @@ impl Substance {
         };
 
         content.insert(k.clone(), (SubstanceBlock::new(e, 0), sb_index));
-        Ok(Self {
-            content,
-            class,
-        })
+        Ok(Self { content, class })
     }
 
     fn try_hydride(
@@ -220,9 +217,9 @@ impl Substance {
             None => {
                 e.insert(o.0, o.1);
                 return Err(e);
-            },
+            }
         };
-        
+
         let indexes = [el.1 .1, o.1 .1];
         el.1 .1 = 1;
         o.1 .1 = 1;
@@ -494,14 +491,20 @@ impl Substance {
                         let oh_idx = h.1 .1;
                         o_oh.1 .1 = 1;
                         h.1 .1 = 1;
-                        
-                        content.insert("OH".to_string(), (SubstanceBlock::new(HashMap::from([o_oh, h]), -1), oh_idx));
-                    },
+
+                        content.insert(
+                            "OH".to_string(),
+                            (SubstanceBlock::new(HashMap::from([o_oh, h]), -1), oh_idx),
+                        );
+                    }
                     "H" => {
                         let h_idx = h.1 .1;
                         h.1 .1 = 1;
-                        content.insert("H".to_string(), (SubstanceBlock::new(HashMap::from([h]), 1), h_idx));
-                    },
+                        content.insert(
+                            "H".to_string(),
+                            (SubstanceBlock::new(HashMap::from([h]), 1), h_idx),
+                        );
+                    }
                     _ => return not_salt(Me, amphMe, antiMe, Some(o), Some(h)),
                 };
                 if o.1 .1 > 0 {
@@ -511,8 +514,11 @@ impl Substance {
             }
             let h_idx = h.1 .1;
             h.1 .1 = 1;
-            content.insert("H".to_string(), (SubstanceBlock::new(HashMap::from([h]), 1), h_idx));
-        } 
+            content.insert(
+                "H".to_string(),
+                (SubstanceBlock::new(HashMap::from([h]), 1), h_idx),
+            );
+        }
         if let Some(o) = o.clone() {
             antiMe.push(o);
         }
@@ -571,7 +577,7 @@ fn other_oxy(c_oxy: i8, o_idx: u8) -> Option<i8> {
 fn mes_val_variants(
     me: &Vec<(String, (Element, u8))>,
     amphMe: &Vec<(String, (Element, u8))>,
-    ) -> Vec<i16> {
+) -> Vec<i16> {
     let mut me_val = 0_i16;
     for (_, m) in me {
         me_val += (m.0.valencies[0] * m.1) as i16;
@@ -582,7 +588,7 @@ fn mes_val_variants(
     }
     let mut len = 1;
     for m in amphMe {
-        len *= m.1. 0.valencies.len();
+        len *= m.1 .0.valencies.len();
     }
     let l = len;
     let mut mes_val = vec![me_val; len];
@@ -632,13 +638,13 @@ fn build_salt(
     amphs_val_variant: usize,
     antiMe: Vec<(String, (Element, u8))>,
     mut content: HashMap<String, (SubstanceBlock, u8)>,
-    ) -> Substance {
+) -> Substance {
     let mut oxy = 0;
     for mut m in Me {
         let m_oxy = m.1 .0.valencies[0] as i8;
         oxy += m_oxy;
 
-        let m_idx = m.1. 1;
+        let m_idx = m.1 .1;
         m.1 .1 = 1;
         content.insert(
             m.0.clone(),
