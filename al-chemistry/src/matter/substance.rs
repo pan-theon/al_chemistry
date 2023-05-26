@@ -99,8 +99,8 @@ impl Substance {
         let checkers: Vec<
             fn(HashMap<String, SubstanceBlock>) -> Result<Self, HashMap<String, SubstanceBlock>>,
         > = vec![
-            /*
             Self::try_hydride,
+            /*
             Self::try_peroxide,
             Self::try_oxide,
             Self::try_base,
@@ -123,71 +123,73 @@ impl Substance {
     }
 
     fn try_simple(
-        sb: HashMap<String, SubstanceBlock>,
+        sbs: HashMap<String, SubstanceBlock>,
     ) -> Result<Self, HashMap<String, SubstanceBlock>> {
-        if sb.len() != 1 {
-            return Err(sb);
+        if sbs.len() != 1 {
+            return Err(sbs);
         }
 
-        let sbl = sb.values().next().unwrap();
+        let sb = sbs.values().next().unwrap();
 
-        let (period, group) = (sbl.element.period, sbl.element.group);
+        let (period, group) = (sb.element.period, sb.element.group);
         match (period < 6 && group < 11 + period) && group < 16 {
                 true => Ok(Self {
-                    me: sb,
+                    me: sbs,
                     anti_me: HashMap::new(),
                     class: SubstanceClass::Simple,
                 }),
                 _ => Ok(Self {
                     me: HashMap::new(),
-                    anti_me: sb,
+                    anti_me: sbs,
                     class: SubstanceClass::Simple,
                 }),
         }
     }
 
-    /*
     fn try_hydride(
-        mut e: HashMap<String, (Element, u8)>,
-    ) -> Result<Self, HashMap<String, (Element, u8)>> {
-        if e.len() != 2 {
-            return Err(e);
+        mut sbs: HashMap<String, SubstanceBlock>,
+    ) -> Result<Self, HashMap<String, SubstanceBlock>> {
+        if sbs.len() != 2 {
+            return Err(sbs);
         }
 
-        let mut h = match e.remove_entry("H") {
-            Some(el) => el,
-            None => return Err(e),
+        let mut h = match sbs.remove_entry("H") {
+            Some(sb) => sb,
+            None => return Err(sbs),
         };
 
-        let mut el = e.iter_mut().next().unwrap();
-        if el.1 .0.electronegativity > h.1 .0.electronegativity {
-            e.insert(h.0, h.1);
-            return Err(e);
+        let mut sb = sbs.drain().next().unwrap();
+        if sb.1.element.electronegativity > h.1.element.electronegativity {
+            sbs.insert(h.0, h.1);
+            return Err(sbs);
         }
 
-        let el_oxy = match other_oxy(-1, el.1 .1) {
+        sb.1.oxidation_state = match other_oxy(-1, sb.1.index) {
             Some(oxy) => oxy,
             None => {
-                e.insert(h.0, h.1);
-                return Err(e);
+                sbs.insert(h.0, h.1);
+                return Err(sbs);
             }
         };
+        h.1.oxidation_state = -1;
 
-        let indexes = [el.1 .1, h.1 .1];
-        el.1 .1 = 1;
-        h.1 .1 = 1;
-        let h = HashMap::from([h]);
+        let mut me = HashMap::new();
+        let mut anti_me = HashMap::from([h]);
 
-        let mut content = HashMap::new();
-        content.insert(el.0.clone(), (SubstanceBlock::new(e, el_oxy), indexes[0]));
-        content.insert("H".to_string(), (SubstanceBlock::new(h, -1), indexes[1]));
+        let (period, group) = (sb.1.element.period, sb.1.element.group);
+        match (period < 6 && group < 11 + period) && group < 16 {
+            true => me.insert(sb.0, sb.1),
+            _ => anti_me.insert(sb.0, sb.1),
+        };
 
         Ok(Self {
-            content,
+            me,
+            anti_me,
             class: SubstanceClass::Hydride,
         })
     }
 
+    /*
     fn try_oxide(
         mut e: HashMap<String, (Element, u8)>,
     ) -> Result<Self, HashMap<String, (Element, u8)>> {
@@ -524,6 +526,7 @@ impl Substance {
             _ => Ok(build_salt(Me, amphMe, me_idx as usize, antiMe, content)),
         }
     }
+    */
 }
 
 fn not_salt(
@@ -563,6 +566,7 @@ fn other_oxy(c_oxy: i8, o_idx: u8) -> Option<i8> {
     }
 }
 
+/*
 fn mes_val_variants(
     me: &Vec<(String, (Element, u8))>,
     amphMe: &Vec<(String, (Element, u8))>,
@@ -677,5 +681,5 @@ fn build_salt(
         content,
         class: SubstanceClass::Salt,
     }
-    */
 }
+*/
