@@ -123,20 +123,6 @@ impl Substance {
         }
     }
 
-    pub fn get_elements(&self) -> Vec<&Element> {
-        let mut res = Vec::new();
-        let mut cratch = Vec::new();
-        for sb in self.content.values() {
-            for e in sb.0.content.values() {
-                if !cratch.contains(&e.0.charge) {
-                    res.push(&e.0);
-                    cratch.push(e.0.charge);
-                }
-            }
-        }
-        res
-    }
-
     fn try_simple(
         mut e: HashMap<String, (Element, u8)>,
     ) -> Result<Self, HashMap<String, (Element, u8)>> {
