@@ -131,8 +131,7 @@ impl Substance {
 
         let sb = sbs.values().next().unwrap();
 
-        let (period, group) = (sb.element.period, sb.element.group);
-        match (period < 6 && group < 11 + period) && group < 16 {
+        match sb.element.is_me() {
                 true => Ok(Self {
                     me: sbs,
                     anti_me: HashMap::new(),
@@ -176,8 +175,7 @@ impl Substance {
         let mut me = HashMap::new();
         let mut anti_me = HashMap::from([h]);
 
-        let (period, group) = (sb.1.element.period, sb.1.element.group);
-        match (period < 6 && group < 11 + period) && group < 16 {
+        match sb.1.element.is_me() {
             true => me.insert(sb.0, sb.1),
             _ => anti_me.insert(sb.0, sb.1),
         };
