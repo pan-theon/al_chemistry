@@ -1,13 +1,19 @@
-use crate::{matter::element::Element, periodic_table::PeriodicTable};
+use crate::{
+    matter::{
+        element::Element,
+        substance::SubstanceBlock,
+    },
+    periodic_table::PeriodicTable,
+};
 use std::collections::HashMap;
 
 // no regex, as other not-really-needed third-party crates
 pub fn collect_elements(
     reagents: &str,
     periodic_table: &PeriodicTable,
-) -> Result<Vec<HashMap<String, (Element, u8)>>, &'static str> {
-    let mut substances = Vec::<HashMap<String, (Element, u8)>>::new();
-    let mut substance = HashMap::<String, (Element, u8)>::new();
+) -> Result<Vec<HashMap<String, SubstanceBlock>>, &'static str> {
+    let mut substances = Vec::<HashMap<String, SubstanceBlock>>::new();
+    let mut substance = HashMap::<String, SubstanceBlock>::new();
 
     let mut element = String::new();
     let mut index = String::new();
@@ -26,7 +32,7 @@ pub fn collect_elements(
         if is_closed {
             while let Some(element) = group.pop() {
                 match substance.get_mut(&element) {
-                    Some(mut e) => e.1 *= index.parse::<u8>().unwrap_or(1),
+                    Some(mut e) => e.index *= index.parse::<u8>().unwrap_or(1),
                     None => return Err(&"There's an error while parsing reagents"),
                 };
             }
@@ -42,9 +48,9 @@ pub fn collect_elements(
                 let i = index.parse::<u8>().unwrap_or(1);
                 index = String::new();
                 match substance.get_mut(&element) {
-                    Some(e) => e.1 += i,
+                    Some(e) => e.index += i,
                     None => {
-                        substance.insert(element.clone(), (e.clone(), i));
+                        substance.insert(element.clone(), SubstanceBlock::new(e.clone(), i, 0));
                     }
                 }
 
