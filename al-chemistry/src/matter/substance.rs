@@ -100,9 +100,9 @@ impl Substance {
             fn(HashMap<String, SubstanceBlock>) -> Result<Self, HashMap<String, SubstanceBlock>>,
         > = vec![
             Self::try_hydride,
-            /*
-            Self::try_peroxide,
+            //Self::try_peroxide,
             Self::try_oxide,
+            /*
             Self::try_base,
             Self::try_salt,
             Self::try_acid,
@@ -160,6 +160,7 @@ impl Substance {
         let mut sb = sbs.drain().next().unwrap();
         if sb.1.element.electronegativity > h.1.element.electronegativity {
             sbs.insert(h.0, h.1);
+            sbs.insert(sb.0, sb.1);
             return Err(sbs);
         }
 
@@ -167,6 +168,7 @@ impl Substance {
             Some(oxy) => oxy,
             None => {
                 sbs.insert(h.0, h.1);
+                sbs.insert(sb.0, sb.1);
                 return Err(sbs);
             }
         };
@@ -187,43 +189,44 @@ impl Substance {
         })
     }
 
-    /*
     fn try_oxide(
-        mut e: HashMap<String, (Element, u8)>,
-    ) -> Result<Self, HashMap<String, (Element, u8)>> {
-        if e.len() != 2 {
-            return Err(e);
+        mut sbs: HashMap<String, SubstanceBlock>,
+    ) -> Result<Self, HashMap<String, SubstanceBlock>> {
+        if sbs.len() != 2 {
+            return Err(sbs);
         }
 
-        let mut o = match e.remove_entry("O") {
+        let mut o = match sbs.remove_entry("O") {
             Some(el) => el,
-            None => return Err(e),
+            None => return Err(sbs),
         };
 
-        let mut el = e.iter_mut().next().unwrap();
-        let el_oxy = match other_oxy(-2, el.1 .1) {
+        let mut sb = sbs.drain().next().unwrap();
+        sb.1.oxidation_state = match other_oxy(-2, sb.1.index) {
             Some(oxy) => oxy,
             None => {
-                e.insert(o.0, o.1);
-                return Err(e);
+                sbs.insert(o.0, o.1);
+                sbs.insert(sb.0, sb.1);
+                return Err(sbs);
             }
         };
+        o.1.oxidation_state = -2;
 
-        let indexes = [el.1 .1, o.1 .1];
-        el.1 .1 = 1;
-        o.1 .1 = 1;
-        let o = HashMap::from([o]);
-
-        let mut content = HashMap::new();
-        content.insert(el.0.clone(), (SubstanceBlock::new(e, el_oxy), indexes[0]));
-        content.insert("O".to_string(), (SubstanceBlock::new(o, -2), indexes[1]));
+        let mut me = HashMap::new();
+        let mut anti_me = HashMap::from([o]);
+        match sb.1.element.is_me() {
+            true => me.insert(sb.0, sb.1),
+            false => anti_me.insert(sb.0, sb.1),
+        };
 
         Ok(Self {
-            content,
+            me,
+            anti_me,
             class: SubstanceClass::Oxide,
         })
     }
 
+    /*
     fn try_peroxide(
         mut e: HashMap<String, (Element, u8)>,
     ) -> Result<Self, HashMap<String, (Element, u8)>> {
