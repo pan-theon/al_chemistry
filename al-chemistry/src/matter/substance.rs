@@ -25,35 +25,21 @@ pub enum SubstanceClass {
     Salt,
 }
 
-// something atomic - atom, ion, group or remainder
 #[derive(Debug, Clone)]
 pub struct SubstanceBlock {
     // elements with indexes
-    pub content: HashMap<String, (Element, u8)>,
+    pub element: Element,
+    pub index: u8,
     pub oxidation_state: i8,
-}
-
-impl fmt::Display for SubstanceBlock {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut res = String::new();
-        for e in &self.content {
-            res += e.0;
-            if e.1 .1 > 1 {
-                res = format!("{}{}", res, char::from_u32(0x2080 + e.1 .1 as u32).unwrap());
-            }
-        }
-        write!(f, "{}", res)
-    }
-}
 
 // The idea: Substance itself determines its class
 // and calculates oxidation_states of its SubstanceBlocks
 // (not the parser)
 impl SubstanceBlock {
-    pub fn new(content: HashMap<String, (Element, u8)>, oxidation_state: i8) -> Self {
+    pub fn new(element: Element, index: u8, oxidation_state: i8) -> Self {
         Self {
-            content,
-            // calculate after Substance was built
+            element,
+            index,
             oxidation_state,
         }
     }
