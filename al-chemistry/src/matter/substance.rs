@@ -16,7 +16,6 @@ const METALLS: [&str; 29] = [
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SubstanceClass {
     Simple,
-    SimpleMetall,
     Hydride,
     Oxide,
     Peroxide,
@@ -96,7 +95,7 @@ impl Substance {
         }
         Self::from_elements(e.swap_remove(0))
     }
-    pub fn from_elements(e: HashMap<String, SubstanceBlock>) -> Result<Self, &'static str> {
+    pub fn from_elements(sb: HashMap<String, SubstanceBlock>) -> Result<Self, &'static str> {
         let checkers: Vec<
             fn(HashMap<String, SubstanceBlock>) -> Result<Self, HashMap<String, SubstanceBlock>>,
         > = vec![
@@ -109,11 +108,11 @@ impl Substance {
             Self::try_acid,
             */
         ];
-        let mut res = Self::try_simple(e);
+        let mut res = Self::try_simple(sb);
         for checker in checkers {
             res = match res {
                 Ok(s) => return Ok(s),
-                Err(e) => checker(e),
+                Err(sb) => checker(sb),
             };
         }
 
@@ -124,24 +123,27 @@ impl Substance {
     }
 
     fn try_simple(
-        mut e: HashMap<String, (Element, u8)>,
-    ) -> Result<Self, HashMap<String, (Element, u8)>> {
-        if e.len() != 1 {
-            return Err(e);
+        sb: HashMap<String, SubstanceBlock>,
+    ) -> Result<Self, HashMap<String, SubstanceBlock>> {
+        if sb.len() != 1 {
+            return Err(sb);
         }
 
-        let mut content = HashMap::<String, (SubstanceBlock, u8)>::new();
-        let (k, mut v) = e.iter_mut().next().unwrap();
-        let sb_index = v.1;
-        v.1 = 1;
+        let sbl = sb.values().next().unwrap();
 
-        let class = match METALLS.contains(&k.as_str()) {
-            true => SubstanceClass::SimpleMetall,
-            false => SubstanceClass::Simple,
-        };
-
-        content.insert(k.clone(), (SubstanceBlock::new(e, 0), sb_index));
-        Ok(Self { content, class })
+        let (period, group) = (sbl.element.period, sbl.element.group);
+        match (period < 6 && group < 11 + period) && group < 16 {
+                true => Ok(Self {
+                    me: sb,
+                    anti_me: HashMap::new(),
+                    class: SubstanceClass::Simple,
+                }),
+                _ => Ok(Self {
+                    me: HashMap::new(),
+                    anti_me: sb,
+                    class: SubstanceClass::Simple,
+                }),
+        }
     }
 
     /*
@@ -675,5 +677,5 @@ fn build_salt(
         content,
         class: SubstanceClass::Salt,
     }
+    */
 }
-*/
