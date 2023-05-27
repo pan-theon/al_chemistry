@@ -102,8 +102,8 @@ impl Substance {
             Self::try_hydride,
             Self::try_peroxide,
             Self::try_oxide,
-            /*
             Self::try_base,
+            /*
             Self::try_salt,
             Self::try_acid,
             */
@@ -233,7 +233,7 @@ impl Substance {
             return Err(sbs);
         }
 
-        let o2 = match sbs.remove_entry("O") {
+        let mut o2 = match sbs.remove_entry("O") {
             Some(el) => el,
             None => return Err(sbs),
         };
@@ -258,6 +258,7 @@ impl Substance {
                 return Err(sbs);
             }
         };
+        o2.1.oxidation_state = -1;
 
         let mut me = HashMap::new();
         let mut anti_me = HashMap::from([o2]);
@@ -273,80 +274,66 @@ impl Substance {
         })
     }
 
-    /*
     fn try_base(
-        mut e: HashMap<String, (Element, u8)>,
-    ) -> Result<Self, HashMap<String, (Element, u8)>> {
+        mut sbs: HashMap<String, SubstanceBlock>,
+    ) -> Result<Self, HashMap<String, SubstanceBlock>> {
         // only hydroxides - inorganic bases
-        if e.len() != 3 {
-            return Err(e);
+        if sbs.len() != 3 {
+            return Err(sbs);
         }
 
-        let mut o = match e.remove_entry("O") {
+        let mut o = match sbs.remove_entry("O") {
             Some(el) => el,
-            None => return Err(e),
+            None => return Err(sbs),
         };
-        let mut h = match e.remove_entry("H") {
+        let mut h = match sbs.remove_entry("H") {
             Some(el) => el,
             None => {
-                e.insert(o.0, o.1);
-                return Err(e);
+                sbs.insert(o.0, o.1);
+                return Err(sbs);
             }
         };
 
-        let mut content = HashMap::new();
-        let el = e.iter_mut().next().unwrap();
+        let mut sb = sbs.drain().next().unwrap();
+        h.1.oxidation_state = 1;
+        o.1.oxidation_state = -2;
 
         // exception - NH₄OH
-        if el.0 == "N" && el.1 .1 == 1 && o.1 .1 == 1 && h.1 .1 == 5 {
-            let mut h4 = h.clone();
-            h4.1 .1 = 4;
-            e.insert(h4.0, h4.1);
-            h.1 .1 = 1;
-            content.insert("NH4".to_string(), (SubstanceBlock::new(e, 1), 1));
-            content.insert(
-                "OH".to_string(),
-                (SubstanceBlock::new(HashMap::from([o, h]), -1), 1),
-            );
+        if sb.0 == "N" && sb.1.index == 1 && o.1.index == 1 && h.1.index == 5 {
+            sb.1.oxidation_state = -3;
 
             return Ok(Self {
-                content,
+                me: HashMap::new(),
+                anti_me: HashMap::from([sb, o, h]),
                 class: SubstanceClass::Base,
             });
         }
 
-        let el_oxy = match other_oxy(-1, el.1 .1) {
-            Some(oxy) => oxy,
-            None => {
-                e.insert(o.0, o.1);
-                e.insert(h.0, h.1);
-                return Err(e);
-            }
-        };
-
-        if o.1.1 == h.1.1 &&
-            // B-Si-As-Te-Po-Lv - border between Me and AntiMe
-            ((el.1.0.period < 6 && el.1.0.group < 11 + el.1.0.period) && el.1.0.group < 16)
-        {
-            let el_index = el.1 .1;
-            let oh_index = o.1 .1;
-            o.1 .1 = 1;
-            h.1 .1 = 1;
-            let oh = HashMap::from([o, h]);
-            content.insert(el.0.clone(), (SubstanceBlock::new(e, el_oxy), el_index));
-            content.insert("OH".to_string(), (SubstanceBlock::new(oh, -1), oh_index));
+        if o.1.index == h.1.index && sb.1.element.is_me() {
+            sb.1.oxidation_state = match other_oxy(-1 * o.1.index as i8, sb.1.index) {
+                Some(oxy) => oxy,
+                None => {
+                    sbs.insert(o.0, o.1);
+                    sbs.insert(h.0, h.1);
+                    sbs.insert(sb.0, sb.1);
+                    return Err(sbs);
+                }
+            };
 
             return Ok(Self {
-                content,
+                me: HashMap::from([sb]),
+                anti_me: HashMap::from([o, h]),
                 class: SubstanceClass::Base,
             });
         }
 
-        e.insert(o.0, o.1);
-        e.insert(h.0, h.1);
-        Err(e)
+        sbs.insert(o.0, o.1);
+        sbs.insert(h.0, h.1);
+        sbs.insert(sb.0, sb.1);
+        Err(sbs)
     }
 
+    /*
     fn try_acid(
         mut e: HashMap<String, (Element, u8)>,
     ) -> Result<Self, HashMap<String, (Element, u8)>> {
