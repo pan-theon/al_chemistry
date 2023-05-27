@@ -100,7 +100,7 @@ impl Substance {
             fn(HashMap<String, SubstanceBlock>) -> Result<Self, HashMap<String, SubstanceBlock>>,
         > = vec![
             Self::try_hydride,
-            //Self::try_peroxide,
+            Self::try_peroxide,
             Self::try_oxide,
             /*
             Self::try_base,
@@ -226,52 +226,54 @@ impl Substance {
         })
     }
 
-    /*
     fn try_peroxide(
-        mut e: HashMap<String, (Element, u8)>,
-    ) -> Result<Self, HashMap<String, (Element, u8)>> {
-        if e.len() != 2 {
-            return Err(e);
+        mut sbs: HashMap<String, SubstanceBlock>,
+    ) -> Result<Self, HashMap<String, SubstanceBlock>> {
+        if sbs.len() != 2 {
+            return Err(sbs);
         }
 
-        let o2 = match e.remove_entry("O") {
+        let o2 = match sbs.remove_entry("O") {
             Some(el) => el,
-            None => return Err(e),
+            None => return Err(sbs),
         };
 
-        let mut el = e.iter_mut().next().unwrap();
+        let mut sb = sbs.drain().next().unwrap();
         // peroxides - it's for active Me only(exclude Be)
-        if el.1 .0.group > 2
-            || el.1 .0.group == el.1 .0.period
-            || o2.1 .1 != 2
-            || f64::from(el.1 .0.valencies[0]) * f64::from(el.1 .1) != 2.0
+        if sb.1.element.group > 2
+            || sb.1.element.group == sb.1.element.period
+            || o2.1.index != 2
+            || f64::from(sb.1.element.valencies[0]) * f64::from(sb.1.index) != 2.0
         {
-            e.insert(o2.0, o2.1);
-            return Err(e);
+            sbs.insert(o2.0, o2.1);
+            sbs.insert(sb.0, sb.1);
+            return Err(sbs);
         }
 
-        let el_oxy = match other_oxy(-1, el.1 .1) {
+        sb.1.oxidation_state = match other_oxy(-1, sb.1.index) {
             Some(oxy) => oxy,
             None => {
-                e.insert(o2.0, o2.1);
-                return Err(e);
+                sbs.insert(o2.0, o2.1);
+                sbs.insert(sb.0, sb.1);
+                return Err(sbs);
             }
         };
 
-        let el_index = el.1 .1;
-        el.1 .1 = 1;
-        let o2 = HashMap::from([o2]);
-
-        let mut content = HashMap::new();
-        content.insert(el.0.clone(), (SubstanceBlock::new(e, el_oxy), el_index));
-        content.insert("0".to_string(), (SubstanceBlock::new(o2, -1), 2));
+        let mut me = HashMap::new();
+        let mut anti_me = HashMap::from([o2]);
+        match sb.1.element.is_me() {
+            true => me.insert(sb.0, sb.1),
+            _ => anti_me.insert(sb.0, sb.1),
+        };
 
         Ok(Self {
-            content,
+            me,
+            anti_me,
             class: SubstanceClass::Peroxide,
         })
     }
 
+    /*
     fn try_base(
         mut e: HashMap<String, (Element, u8)>,
     ) -> Result<Self, HashMap<String, (Element, u8)>> {
