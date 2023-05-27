@@ -103,10 +103,8 @@ impl Substance {
             Self::try_peroxide,
             Self::try_oxide,
             Self::try_base,
-            /*
-            Self::try_salt,
+            //Self::try_salt,
             Self::try_acid,
-            */
         ];
         let mut res = Self::try_simple(sb);
         for checker in checkers {
@@ -333,49 +331,77 @@ impl Substance {
         Err(sbs)
     }
 
-    /*
     fn try_acid(
-        mut e: HashMap<String, (Element, u8)>,
-    ) -> Result<Self, HashMap<String, (Element, u8)>> {
-        let mut h = match e.remove_entry("H") {
+        mut sbs: HashMap<String, SubstanceBlock>,
+    ) -> Result<Self, HashMap<String, SubstanceBlock>> {
+        println!("{:?}", sbs);
+        let mut h = match sbs.remove_entry("H") {
             Some(el) => el,
-            None => return Err(e),
+            None => return Err(sbs),
         };
+        h.1.oxidation_state = 1;
 
-        let mut residue = String::new();
         // is there something with big electronegativity - e.g. O or S
-        let mut is_oxidant = false;
-        for el in e.iter() {
-            if el.1 .0.group < 3 {
-                e.insert(h.0, h.1);
-                return Err(e);
+        let mut ox_eln = 0_f32;
+        let mut oxidant = String::new();
+        for sb in &mut sbs {
+            if sb.1.element.group < 3 {
+                sbs.insert(h.0, h.1);
+                return Err(sbs);
             }
-            if el.1 .0.group > 15 || el.1 .0.electronegativity > 2.8 {
-                is_oxidant = true;
+            if sb.1.element.group > 15 || sb.1.element.electronegativity > 2.8
+                && ox_eln < sb.1.element.electronegativity
+            {
+                ox_eln = sb.1.element.electronegativity;
+                oxidant = sb.0.clone();
             }
-
-            residue = format!("{}{}{}", residue, el.0, el.1 .1);
         }
-        if !is_oxidant {
-            e.insert(h.0, h.1);
-            return Err(e);
-        }
+        let mut ox = match oxidant.is_empty() {
+            false => sbs.remove_entry(&oxidant).unwrap(),
+            _ => {
+                sbs.insert(h.0, h.1);
+                return Err(sbs);
+            },
+        };
+        ox.1.oxidation_state = ox.1.element.group as i8 - 18;
 
-        let h_index = h.1 .1;
-        h.1 .1 = 1;
-        let mut content = HashMap::new();
-        content.insert(
-            "H".to_string(),
-            (SubstanceBlock::new(HashMap::from([h]), -1), h_index),
-        );
-        content.insert(residue, (SubstanceBlock::new(e, -(h_index as i8)), 1));
+        let mut sbls = Vec::new();
+        for (_, sb) in &mut sbs {
+            sbls.push(sb);
+        }
+        let (res_vals, len) =
+            valency_variants(&sbls, ox.1.oxidation_state as i16 * ox.1.index as i16);
+        let mut idx = -1_i8;
+        for i in 0..res_vals.len() {
+            if -res_vals[i] == h.1.index as i16 {
+                idx = i as i8;
+                break;
+            }
+        }
+        if idx == -1 {
+            sbs.insert(h.0, h.1);
+            sbs.insert(ox.0, ox.1);
+            return Err(sbs);
+        }
+        valencies_by_variant(&mut sbls, idx as usize, len);
+
+        let mut me = HashMap::new();
+        let mut anti_me = HashMap::from([h, ox]);
+        for sb in sbs {
+            match sb.1.element.is_me() {
+                true => me.insert(sb.0, sb.1),
+                false => anti_me.insert(sb.0, sb.1),
+            };
+        }
 
         Ok(Self {
-            content,
+            me,
+            anti_me,
             class: SubstanceClass::Acid,
         })
     }
 
+    /*
     fn try_salt(
         mut e: HashMap<String, (Element, u8)>,
     ) -> Result<Self, HashMap<String, (Element, u8)>> {
@@ -556,65 +582,40 @@ fn other_oxy(c_oxy: i8, o_idx: u8) -> Option<i8> {
     }
 }
 
+fn valency_variants(sbs: &Vec<&mut SubstanceBlock>, start: i16) -> (Vec<i16>, usize) {
+    let mut len = 1;
+    for sb in sbs {
+        len *= sb.element.valencies.len();
+    }
+    let l = len;
+    let mut variants = vec![start; len];
+    for sb in sbs {
+        let val_n = sb.element.valencies.len();
+        for i in 0..l / len {
+            for v_i in 0..val_n {
+                for j in 0..len / val_n {
+                    let idx = i * l / len + v_i * len / val_n + j;
+                    variants[idx] += (sb.element.valencies[v_i] * sb.index) as i16;
+                }
+            }
+        }
+        len /= val_n;
+    }
+
+    (variants, l)
+}
+
+fn valencies_by_variant(sbs: &mut Vec<&mut SubstanceBlock>, variant: usize, mut len: usize) {
+    for mut sb in sbs {
+        let mut val_idx = variant % len;
+        len /= sb.element.valencies.len();
+        val_idx /= len;
+
+        sb.oxidation_state = sb.element.valencies[val_idx] as i8;
+    }
+}
+
 /*
-fn mes_val_variants(
-    me: &Vec<(String, (Element, u8))>,
-    amphMe: &Vec<(String, (Element, u8))>,
-) -> Vec<i16> {
-    let mut me_val = 0_i16;
-    for (_, m) in me {
-        me_val += (m.0.valencies[0] * m.1) as i16;
-    }
-
-    if amphMe.len() == 0 {
-        return vec![me_val];
-    }
-    let mut len = 1;
-    for m in amphMe {
-        len *= m.1 .0.valencies.len();
-    }
-    let l = len;
-    let mut mes_val = vec![me_val; len];
-    for m in amphMe {
-        for i in 0..l / len {
-            for v_i in 0..m.1 .0.valencies.len() {
-                for j in 0..len / m.1 .0.valencies.len() {
-                    let idx = i * l / len + v_i * len / m.1 .0.valencies.len() + j;
-                    mes_val[idx] += (m.1 .0.valencies[0] * m.1 .1) as i16;
-                }
-            }
-        }
-        len /= m.1 .0.valencies.len();
-    }
-
-    mes_val
-}
-
-fn residue_oxis_variants(antiMe: &Vec<(String, (Element, u8))>, start: i16) -> Vec<i16> {
-    let oxidant = &antiMe[antiMe.len() - 1].1;
-    let oxidant_oxy = (oxidant.0.group as i16 - 18) * oxidant.1 as i16;
-
-    let mut len = 1;
-    for i in 0..antiMe.len() - 1 {
-        len *= antiMe[i].1 .0.valencies.len();
-    }
-    let l = len;
-    let mut residue_oxis = vec![oxidant_oxy + start; len];
-    for a in 0..antiMe.len() - 1 {
-        for i in 0..l / len {
-            for v_i in 0..antiMe[a].1 .0.valencies.len() {
-                for j in 0..len / antiMe[a].1 .0.valencies.len() {
-                    let idx = i * l / len + v_i * len / antiMe[a].1 .0.valencies.len() + j;
-                    residue_oxis[idx] += (antiMe[a].1 .0.valencies[v_i] * antiMe[a].1 .1) as i16;
-                }
-            }
-        }
-        len /= antiMe[a].1 .0.valencies.len();
-    }
-
-    residue_oxis
-}
-
 fn build_salt(
     Me: Vec<(String, (Element, u8))>,
     amphMe: Vec<(String, (Element, u8))>,
