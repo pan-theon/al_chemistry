@@ -164,7 +164,7 @@ impl Substance {
             return Err(sbs);
         }
 
-        sb.1.oxidation_state = match other_oxy(-1, sb.1.index) {
+        sb.1.oxidation_state = match other_oxy(-1 * h.1.index as i8, sb.1.index) {
             Some(oxy) => oxy,
             None => {
                 sbs.insert(h.0, h.1);
@@ -202,7 +202,7 @@ impl Substance {
         };
 
         let mut sb = sbs.drain().next().unwrap();
-        sb.1.oxidation_state = match other_oxy(-2, sb.1.index) {
+        sb.1.oxidation_state = match other_oxy(-2 * o.1.index as i8, sb.1.index) {
             Some(oxy) => oxy,
             None => {
                 sbs.insert(o.0, o.1);
@@ -250,7 +250,7 @@ impl Substance {
             return Err(sbs);
         }
 
-        sb.1.oxidation_state = match other_oxy(-1, sb.1.index) {
+        sb.1.oxidation_state = match other_oxy(-1 * o2.1.index as i8, sb.1.index) {
             Some(oxy) => oxy,
             None => {
                 sbs.insert(o2.0, o2.1);
