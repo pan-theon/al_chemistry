@@ -103,7 +103,7 @@ impl Substance {
             Self::try_peroxide,
             Self::try_oxide,
             Self::try_base,
-            //Self::try_salt,
+            Self::try_salt,
             Self::try_acid,
         ];
         let mut res = Self::try_simple(sb);
