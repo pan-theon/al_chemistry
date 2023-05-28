@@ -334,7 +334,6 @@ impl Substance {
     fn try_acid(
         mut sbs: HashMap<String, SubstanceBlock>,
     ) -> Result<Self, HashMap<String, SubstanceBlock>> {
-        println!("{:?}", sbs);
         let mut h = match sbs.remove_entry("H") {
             Some(el) => el,
             None => return Err(sbs),
@@ -346,8 +345,7 @@ impl Substance {
         let mut oxidant = String::new();
         for sb in &mut sbs {
             if sb.1.element.group < 3 {
-                sbs.insert(h.0, h.1);
-                return Err(sbs);
+                return wrong_class(vec![], vec![Some(h)]);
             }
             if sb.1.element.group > 15 || sb.1.element.electronegativity > 2.8
                 && ox_eln < sb.1.element.electronegativity
@@ -358,32 +356,17 @@ impl Substance {
         }
         let mut ox = match oxidant.is_empty() {
             false => sbs.remove_entry(&oxidant).unwrap(),
-            _ => {
-                sbs.insert(h.0, h.1);
-                return Err(sbs);
-            },
+            _ => return wrong_class(vec![], vec![Some(h)]),
         };
         ox.1.oxidation_state = ox.1.element.group as i8 - 18;
 
-        let mut sbls = Vec::new();
-        for (_, sb) in &mut sbs {
-            sbls.push(sb);
-        }
         let (res_vals, len) =
-            valency_variants(&sbls, ox.1.oxidation_state as i16 * ox.1.index as i16);
-        let mut idx = -1_i8;
-        for i in 0..res_vals.len() {
-            if -res_vals[i] == h.1.index as i16 {
-                idx = i as i8;
-                break;
-            }
+            valency_variants(&sbs, ox.1.oxidation_state as i16 * ox.1.index as i16);
+
+        match res_vals.iter().position(|&x| -x == h.1.index as i16) {
+            Some(i) => valencies_by_variant(&mut sbs, i, len),
+            _ => return wrong_class(vec![], vec![Some(h), Some(ox)]),
         }
-        if idx == -1 {
-            sbs.insert(h.0, h.1);
-            sbs.insert(ox.0, ox.1);
-            return Err(sbs);
-        }
-        valencies_by_variant(&mut sbls, idx as usize, len);
 
         let mut me = HashMap::new();
         let mut anti_me = HashMap::from([h, ox]);
@@ -401,173 +384,120 @@ impl Substance {
         })
     }
 
-    /*
     fn try_salt(
-        mut e: HashMap<String, (Element, u8)>,
-    ) -> Result<Self, HashMap<String, (Element, u8)>> {
-        let mut Me = Vec::<(String, (Element, u8))>::new();
-        let mut amphMe = Vec::<(String, (Element, u8))>::new();
-        let mut antiMe = Vec::<(String, (Element, u8))>::new();
+        mut sbs: HashMap<String, SubstanceBlock>,
+    ) -> Result<Self, HashMap<String, SubstanceBlock>> {
+        let mut me = HashMap::new();
+        let mut anti_me = HashMap::new();
 
-        let h = e.remove_entry("H");
-        let o = e.remove_entry("O");
-        for el in e.into_iter() {
-            let kind;
-            if el.1 .0.group < 3 {
-                Me.push(el);
+        let h = sbs.remove_entry("H");
+
+        // oxidant and salt-forming Me for case of O
+        // in case of sth like CuTiO₃ or Fe₂(CrO₄)₃
+        // salt-forming there is Me with less electronegativity
+        let mut importants = [String::new(), String::new()];
+        let mut importants_eln = [0_f32, 10_f32];
+        for sb in sbs {
+            let sb_eln = sb.1.element.electronegativity;
+            if sb.1.element.is_me() {
+                if sb.1.element.group > 2 && sb_eln < importants_eln[1] {
+                    importants[1] = sb.0.clone();
+                    importants_eln[1] = sb_eln;
+                }
+                me.insert(sb.0, sb.1);
                 continue;
-            // antiMe sorted by electronegativity for oxidant determination
-            // and so amphMe because of sth like CuTiO₃ or Fe₂(CrO₄)₃
-            // acid-forming there is Me with less electronegativity
-            } else if (el.1 .0.period < 6 && el.1 .0.group < 11 + el.1 .0.period)
-                && el.1 .0.group < 16
-            {
-                kind = &mut amphMe;
-            } else {
-                kind = &mut antiMe;
             }
-
-            let mut i = 0;
-            while i < kind.len() && kind[i].1 .0.electronegativity < el.1 .0.electronegativity {
-                i += 1;
+            if sb.1.element.group > 15 || sb_eln > 2.8 && importants_eln[0] < sb_eln {
+                importants[0] = sb.0.clone();
+                importants_eln[0] = sb_eln;
             }
-            kind.insert(i, el);
+            anti_me.insert(sb.0, sb.1);
         }
 
         // there must be oxidant and Me
-        let parts = [&mut antiMe, &mut Me];
-        for i in 0..2 {
-            if parts[i].len() == 0 {
-                if amphMe.len() == 0 {
-                    return not_salt(Me, antiMe, amphMe, o, h);
-                }
-                let idx = match i {
-                    1 => amphMe.len() - 1,
-                    n => n,
-                };
-                parts[i].push(amphMe.swap_remove(idx));
-            }
+        if me.len() == 0 {
+            return wrong_class(vec![anti_me], vec![h]);
         }
-        let mut content = HashMap::new();
-        let mut me_idx = -1_i16;
-        let mes_val = mes_val_variants(&Me, &amphMe);
-        if let Some(mut h) = h.clone() {
-            if let Some(mut o) = o {
-                let h_o = o.clone();
-                let mut oh_o = o.clone();
+        let mut ox = match importants[0].is_empty() {
+            true => return wrong_class(vec![me, anti_me], vec![h]),
+            _ => anti_me.remove_entry(&importants[0]).unwrap(),
+        };
+        ox.1.oxidation_state = ox.1.element.group as i8 - 18 * ox.1.index as i8;
+        if anti_me.len() == 0 {
+            let m = match importants[1].is_empty() {
+                true => return wrong_class(vec![me, anti_me], vec![h, Some(ox)]),
+                _ => me.remove_entry(&importants[1]).unwrap(),
+            };
+            anti_me.insert(m.0, m.1);
+        }
 
-                antiMe.push(h_o);
-                let h_residue_oxis = residue_oxis_variants(&antiMe, h.1 .1 as i16);
-                antiMe.pop();
-
-                let o_g_h = o.1 .1 > h.1 .1;
-                if o_g_h {
-                    oh_o.1 .1 -= h.1 .1;
-                    antiMe.push(oh_o);
-                }
-                let oh_residue_oxis = residue_oxis_variants(&antiMe, -(h.1 .1 as i16));
-                if o_g_h {
-                    antiMe.pop();
-                }
-
-                let mut salt_type = "";
-                for oh_e in oh_residue_oxis {
-                    for m_i in 0..mes_val.len() {
-                        if -oh_e == mes_val[m_i] {
-                            me_idx = m_i as i16;
-                            salt_type = "OH";
-                            break;
+        let (mut mes_valency_variants, mut me_len);
+        let (mut res_valency_variants, mut res_len);
+        let mut h_save = None;
+        let mut me_start = 0;
+        if let Some(mut h) = h {
+            h.1.oxidation_state = 1;
+            // try base salt
+            if ox.1.element.charge == 8 && ox.1.index > h.1.index {
+                (mes_valency_variants, me_len) = valency_variants(&me, -(h.1.index as i16));
+                (res_valency_variants, res_len) = valency_variants(&anti_me,  ((h.1.index - ox.1.index) as i16) << 1);
+                for i in 0..mes_valency_variants.len() {
+                    for j in 0..res_valency_variants.len() {
+                        if mes_valency_variants[i] == res_valency_variants[j] {
+                            valencies_by_variant(&mut me, i, me_len);
+                            valencies_by_variant(&mut anti_me, j, res_len);
+                            anti_me.insert(ox.0, ox.1);
+                            anti_me.insert(h.0, h.1);
+                            return Ok(Self {
+                                me,
+                                anti_me,
+                                class: SubstanceClass::Salt,
+                            });
                         }
                     }
                 }
-                if salt_type.is_empty() {
-                    for h_e in h_residue_oxis {
-                        for m_i in 0..mes_val.len() {
-                            if -h_e == mes_val[m_i] {
-                                me_idx = m_i as i16;
-                                salt_type = "H";
-                                break;
-                            }
-                        }
-                    }
-                }
-                match salt_type {
-                    "OH" => {
-                        o.1 .1 -= h.1 .1;
-                        let mut o_oh = o.clone();
-                        let oh_idx = h.1 .1;
-                        o_oh.1 .1 = 1;
-                        h.1 .1 = 1;
-
-                        content.insert(
-                            "OH".to_string(),
-                            (SubstanceBlock::new(HashMap::from([o_oh, h]), -1), oh_idx),
-                        );
-                    }
-                    "H" => {
-                        let h_idx = h.1 .1;
-                        h.1 .1 = 1;
-                        content.insert(
-                            "H".to_string(),
-                            (SubstanceBlock::new(HashMap::from([h]), 1), h_idx),
-                        );
-                    }
-                    _ => return not_salt(Me, amphMe, antiMe, Some(o), Some(h)),
-                };
-                if o.1 .1 > 0 {
-                    antiMe.push(o);
-                }
-                return Ok(build_salt(Me, amphMe, me_idx as usize, antiMe, content));
             }
-            let h_idx = h.1 .1;
-            h.1 .1 = 1;
-            content.insert(
-                "H".to_string(),
-                (SubstanceBlock::new(HashMap::from([h]), 1), h_idx),
-            );
+            me_start = h.1.index as i16;
+            h_save = Some(h);
         }
-        if let Some(o) = o.clone() {
-            antiMe.push(o);
-        }
-        let residue_oxis = residue_oxis_variants(&antiMe, 0);
-        for res_i in residue_oxis {
-            for me_i in 0..mes_val.len() {
-                if -res_i == mes_val[me_i] {
-                    me_idx = me_i as i16;
+        (mes_valency_variants, me_len) = valency_variants(&me, me_start);
+        (res_valency_variants, res_len) = valency_variants(&anti_me, ox.1.oxidation_state as i16);
+        for i in 0..mes_valency_variants.len() {
+            for j in 0..res_valency_variants.len() {
+                if mes_valency_variants[i] == res_valency_variants[j] {
+                    valencies_by_variant(&mut me, i, me_len);
+                    valencies_by_variant(&mut anti_me, j, res_len);
+                    anti_me.insert(ox.0, ox.1);
+                    if let Some(h) = h_save {
+                        anti_me.insert(h.0, h.1);
+                    }
+                    return Ok(Self {
+                        me,
+                        anti_me,
+                        class: SubstanceClass::Salt,
+                    });
                 }
             }
         }
-        match me_idx {
-            -1 => not_salt(Me, amphMe, antiMe, o, h),
-            _ => Ok(build_salt(Me, amphMe, me_idx as usize, antiMe, content)),
-        }
+        
+        wrong_class(vec![me, anti_me], vec![h_save, Some(ox)])
     }
-    */
 }
 
-fn not_salt(
-    me: Vec<(String, (Element, u8))>,
-    amph_me: Vec<(String, (Element, u8))>,
-    anti_me: Vec<(String, (Element, u8))>,
-    h: Option<(String, (Element, u8))>,
-    o: Option<(String, (Element, u8))>,
-) -> Result<Substance, HashMap<String, (Element, u8)>> {
+fn wrong_class(
+    groups: Vec<HashMap<String, SubstanceBlock>>,
+    alones: Vec<Option<(String, SubstanceBlock)>>,
+) -> Result<Substance, HashMap<String, SubstanceBlock>> {
     let mut err = HashMap::new();
-
-    for m in me {
-        err.insert(m.0, m.1);
+    for group in groups {
+        for sb in group {
+            err.insert(sb.0, sb.1);
+        }
     }
-    for m in anti_me {
-        err.insert(m.0, m.1);
-    }
-    for m in amph_me {
-        err.insert(m.0, m.1);
-    }
-    if let Some(o) = o {
-        err.insert(o.0, o.1);
-    }
-    if let Some(h) = h {
-        err.insert(h.0, h.1);
+    for alone in alones {
+        if let Some(sb) = alone {
+            err.insert(sb.0, sb.1);
+        }
     }
 
     Err(err)
@@ -582,14 +512,14 @@ fn other_oxy(c_oxy: i8, o_idx: u8) -> Option<i8> {
     }
 }
 
-fn valency_variants(sbs: &Vec<&mut SubstanceBlock>, start: i16) -> (Vec<i16>, usize) {
+fn valency_variants(sbs: &HashMap<String, SubstanceBlock>, start: i16) -> (Vec<i16>, usize) {
     let mut len = 1;
-    for sb in sbs {
+    for sb in sbs.values() {
         len *= sb.element.valencies.len();
     }
     let l = len;
     let mut variants = vec![start; len];
-    for sb in sbs {
+    for sb in sbs.values() {
         let val_n = sb.element.valencies.len();
         for i in 0..l / len {
             for v_i in 0..val_n {
@@ -605,8 +535,8 @@ fn valency_variants(sbs: &Vec<&mut SubstanceBlock>, start: i16) -> (Vec<i16>, us
     (variants, l)
 }
 
-fn valencies_by_variant(sbs: &mut Vec<&mut SubstanceBlock>, variant: usize, mut len: usize) {
-    for mut sb in sbs {
+fn valencies_by_variant(sbs: &mut HashMap<String, SubstanceBlock>, variant: usize, mut len: usize) {
+    for mut sb in sbs.values_mut() {
         let mut val_idx = variant % len;
         len /= sb.element.valencies.len();
         val_idx /= len;
