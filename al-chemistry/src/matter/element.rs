@@ -1,7 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 // pure chemical element
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug)]
 pub struct Element {
     pub charge: u16,
     pub group: u8,

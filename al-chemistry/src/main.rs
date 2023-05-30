@@ -14,7 +14,7 @@ mod math_util;
 
 fn main() {
     // periodic table example
-    let periodic_table = PeriodicTable::new().unwrap();
+    let periodic_table = PeriodicTable::new();
     println!("{}", periodic_table.get("Cr").unwrap().a_rm);
 
     use crate::matter::substance::*;
