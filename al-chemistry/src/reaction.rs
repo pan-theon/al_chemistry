@@ -4,7 +4,7 @@ use crate::{
     math_util::lcm,
     matter::{
         element::Element,
-        substance::{Substance, SubstanceClass as SC},
+        substance::{Substance, SubstanceBlock, SubstanceClass as SC},
     },
     periodic_table::PeriodicTable,
 };
@@ -58,10 +58,15 @@ impl Reaction {
         // Characteristic of reagents
         let mut reagent_classes = Vec::<SC>::new(); // SubstanceClasses of reagents
         let mut contains_oxyde = false;
+        let mut contains_metall = false;
 
         // Fill characteristics of reagents
         for substance in reagents {
             reagent_classes.push(substance.class); // fill reagent class into vector
+
+            if substance.anti_me.len() == 0 && substance.me.len() > 0 {
+                contains_metall = true;
+            }
 
             if substance.eq(&oxygen) {
                 // reaction contains oxygen
@@ -70,7 +75,7 @@ impl Reaction {
         }
 
         // Me + O2 (Metall and Oxyde)
-        if reagent_classes.contains(&SC::SimpleMetall) && contains_oxyde {
+        if reagent_classes.contains(&SC::Simple) && contains_oxyde && contains_metall {
             return ReactionClass::MetallOxygen;
         }
 
@@ -83,20 +88,19 @@ impl Reaction {
     ) -> Vec<Result<Substance, &'static str>> {
         let p_t = PeriodicTable::new().unwrap();
 
-        // Eeee, unparse HashMap that contains another HashMap that contains Element
+        // Get metall element from reagents
         for (i, reagent) in reagents.iter_mut().enumerate() {
             // remove O2 from reagents
-            if let Some(_) = reagent.content.remove_entry("O") {
+            if let Some(_) = reagent.anti_me.remove_entry("O") {
                 reagents.remove(i);
                 break;
             }
         }
 
-        let metall_substance = reagents.pop().unwrap();
-        let metall_substance_iter = metall_substance.content.iter().next().unwrap();
+        let metall_substance = reagents.pop().unwrap(); // we can be sure that reagents contains only one Substance
+        let metall_substance_iter = metall_substance.me.iter().next().unwrap();
         let metall_name = metall_substance_iter.0.clone();
-        let metall_block = metall_substance_iter.1 .0.clone();
-        let metall_element = metall_block.content.iter().next().unwrap().1 .0.clone();
+        let metall_element = metall_substance_iter.1.element.clone();
 
         // Construct products
         // TODO: Add exceptions to the rules (example: Na + O2 = Na2O2 peroxyde)
@@ -111,9 +115,15 @@ impl Reaction {
 
         let oxygen_element = p_t.get("O").unwrap().clone();
 
-        let mut map: HashMap<String, (Element, u8)> = HashMap::new();
-        map.insert(metall_name, (metall_element, metall_index));
-        map.insert("O".to_string(), (oxygen_element, oxygen_index));
+        let mut map: HashMap<String, SubstanceBlock> = HashMap::new();
+        map.insert(
+            metall_name,
+            SubstanceBlock::new(metall_element, metall_index, 0),
+        );
+        map.insert(
+            "O".to_string(),
+            SubstanceBlock::new(oxygen_element, oxygen_index, 0),
+        );
 
         vec![Substance::from_elements(map)]
     }

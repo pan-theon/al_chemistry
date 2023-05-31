@@ -5,10 +5,8 @@ use periodic_table::PeriodicTable;
 
 mod parser;
 
-/*
 mod reaction;
 use reaction::Reaction;
-*/
 
 mod math_util;
 
@@ -19,19 +17,9 @@ fn main() {
 
     use crate::matter::substance::*;
 
-    /*
-    let alohco3 = Substance::from_string(&"Al(OH)CO3", &periodic_table).unwrap();
-    assert!(alohco3.class == SubstanceClass::Salt);
-    assert!(alohco3.content.get("OH").is_some());
-
-    let t = Substance::from_string(&"NaAlO2", &periodic_table).unwrap();
-    assert!(t.class == SubstanceClass::Salt);
-
-    let t = Substance::from_string(&"NaI", &periodic_table).unwrap();
-    assert!(t.class == SubstanceClass::Salt);
-
-    let t2 = Substance::from_string(&"Al(OH)2Cl", &periodic_table).unwrap();
-    assert!(t2.class == SubstanceClass::Salt);
+    let nao = Substance::from_string("NaO", &periodic_table).unwrap();
+    dbg!(&nao);
+    println!("{:?}", nao.anti_me);
 
     let reaction = Reaction::try_calculate_from(vec![
         Substance::from_string("Li", &periodic_table).unwrap(),
@@ -50,5 +38,19 @@ fn main() {
         Substance::from_string("O2", &periodic_table).unwrap(),
     ]);
     dbg!(reaction);
+
+    /*
+    let alohco3 = Substance::from_string(&"Al(OH)CO3", &periodic_table).unwrap();
+    assert!(alohco3.class == SubstanceClass::Salt);
+    assert!(alohco3.content.get("OH").is_some());
+
+    let t = Substance::from_string(&"NaAlO2", &periodic_table).unwrap();
+    assert!(t.class == SubstanceClass::Salt);
+
+    let t = Substance::from_string(&"NaI", &periodic_table).unwrap();
+    assert!(t.class == SubstanceClass::Salt);
+
+    let t2 = Substance::from_string(&"Al(OH)2Cl", &periodic_table).unwrap();
+    assert!(t2.class == SubstanceClass::Salt);
     */
 }
