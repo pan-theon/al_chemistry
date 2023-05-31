@@ -19,6 +19,8 @@ fn main() {
 
     use crate::matter::substance::*;
 
+    let t = Substance::from_string("B(OH)3", &periodic_table);
+    println!("{:#?}", t);
     /*
     let alohco3 = Substance::from_string(&"Al(OH)CO3", &periodic_table).unwrap();
     assert!(alohco3.class == SubstanceClass::Salt);
