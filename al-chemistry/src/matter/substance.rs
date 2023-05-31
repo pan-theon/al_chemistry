@@ -6,13 +6,6 @@ use crate::math_util::gcd;
 use crate::parser;
 use crate::periodic_table::PeriodicTable;
 
-// Electrochmical series of metalls. Where:
-// from left to right the standard electrochemical potential increases
-const METALLS: [&str; 29] = [
-    "Li", "Cs", "Rb", "K", "Ba", "Sr", "Ca", "Na", "Mg", "Al", "Ti", "Mn", "Zn", "Cr", "Fe", "Cd",
-    "Co", "Ni", "Sn", "Pb", "H", "Sb", "Bi", "Cu", "Hg", "Ag", "Pd", "Pt", "Au",
-];
-
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SubstanceClass {
     Simple,
