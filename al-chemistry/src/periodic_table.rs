@@ -124,8 +124,7 @@ impl PeriodicTable {
         self.table.get(key)
     }
 
-    pub fn insert(&mut self, name: String, el: Element)
-    {
+    pub fn insert(&mut self, name: String, el: Element) {
         for (k, v) in &self.table {
             if *k == name || v.charge == el.charge {
                 return;
