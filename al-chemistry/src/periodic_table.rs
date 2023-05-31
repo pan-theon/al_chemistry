@@ -8,6 +8,7 @@ pub struct PeriodicTable {
 
 impl PeriodicTable {
     pub fn new() -> PeriodicTable {
+        #[cfg_attr(rustfmt, rustfmt_skip)]
         let table = HashMap::from([
             ("H".to_string(), Element {charge:1, group:1, period:1, a_rm:1.0079, valencies: vec![1], electronegativity:2.2}),
             ("He".to_string(), Element {charge:2, group:18, period:1, a_rm:4.0026, valencies: vec![8], electronegativity:0.0}),
