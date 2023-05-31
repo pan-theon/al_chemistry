@@ -2,7 +2,6 @@ use super::element::Element;
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::math_util::gcd;
 use crate::parser;
 use crate::periodic_table::PeriodicTable;
 
@@ -130,16 +129,16 @@ impl Substance {
         let sb = sbs.values().next().unwrap();
 
         match sb.element.is_me() {
-                true => Ok(Self {
-                    me: sbs,
-                    anti_me: HashMap::new(),
-                    class: SubstanceClass::Simple,
-                }),
-                _ => Ok(Self {
-                    me: HashMap::new(),
-                    anti_me: sbs,
-                    class: SubstanceClass::Simple,
-                }),
+            true => Ok(Self {
+                me: sbs,
+                anti_me: HashMap::new(),
+                class: SubstanceClass::Simple,
+            }),
+            _ => Ok(Self {
+                me: HashMap::new(),
+                anti_me: sbs,
+                class: SubstanceClass::Simple,
+            }),
         }
     }
 
@@ -347,8 +346,8 @@ impl Substance {
             if sb.1.element.group < 3 {
                 return wrong_class(vec![], vec![Some(h)]);
             }
-            if sb.1.element.group > 15 || sb.1.element.electronegativity > 2.8
-                && ox_eln < sb.1.element.electronegativity
+            if sb.1.element.group > 15
+                || sb.1.element.electronegativity > 2.8 && ox_eln < sb.1.element.electronegativity
             {
                 ox_eln = sb.1.element.electronegativity;
                 oxidant = sb.0.clone();
@@ -440,7 +439,8 @@ impl Substance {
             // try base salt
             if ox.1.element.charge == 8 && ox.1.index > h.1.index {
                 (mes_valency_variants, me_len) = valency_variants(&me, -(h.1.index as i16));
-                (res_valency_variants, res_len) = valency_variants(&anti_me,  ((h.1.index - ox.1.index) as i16) << 1);
+                (res_valency_variants, res_len) =
+                    valency_variants(&anti_me, ((h.1.index - ox.1.index) as i16) << 1);
                 for i in 0..mes_valency_variants.len() {
                     for j in 0..res_valency_variants.len() {
                         if mes_valency_variants[i] == res_valency_variants[j] {
@@ -479,7 +479,7 @@ impl Substance {
                 }
             }
         }
-        
+
         wrong_class(vec![me, anti_me], vec![h_save, Some(ox)])
     }
 }

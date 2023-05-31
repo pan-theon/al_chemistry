@@ -1,5 +1,5 @@
 use crate::{
-    matter::{element::Element, substance::SubstanceBlock},
+    matter::substance::SubstanceBlock,
     periodic_table::PeriodicTable,
 };
 use std::collections::HashMap;
