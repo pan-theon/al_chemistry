@@ -90,24 +90,11 @@ impl Reaction {
     }
 
     // result: metall oxyde
-    fn metall_oxygen_reaction(
-        mut reagents: Vec<Substance>,
-    ) -> Vec<Result<Substance, &'static str>> {
+    fn metall_oxygen_reaction(reagents: Vec<Substance>) -> Vec<Result<Substance, &'static str>> {
         let p_t = PeriodicTable::new().unwrap();
 
-        // Get metall element from reagents
-        for (i, reagent) in reagents.iter_mut().enumerate() {
-            // remove O2 from reagents
-            if let Some(_) = reagent.anti_me.remove_entry("O") {
-                reagents.remove(i);
-                break;
-            }
-        }
-
-        let metall_substance = reagents.pop().unwrap(); // we can be sure that reagents contains only one Substance
-        let metall_substance_iter = metall_substance.me.iter().next().unwrap();
-        let metall_name = metall_substance_iter.0.clone();
-        let metall_element = metall_substance_iter.1.element.clone();
+        // Get metall information
+        let (metall_name, metall_element) = get_simple_metall_from_reagents(&reagents).unwrap();
 
         // Construct products
         // TODO: Add exceptions to the rules (example: Na + O2 = Na2O2 peroxyde)
@@ -134,4 +121,14 @@ impl Reaction {
 
         vec![Substance::from_elements(map)]
     }
+}
+
+fn get_simple_metall_from_reagents(reagents: &Vec<Substance>) -> Option<(String, Element)> {
+    for reagent in reagents.iter() {
+        if reagent.me.len() == 1 && reagent.anti_me.len() == 0 {
+            let reagent_iter = reagent.me.iter().next().unwrap();
+            return Some((reagent_iter.0.clone(), reagent_iter.1.element.clone()));
+        }
+    }
+    None
 }
