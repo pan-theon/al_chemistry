@@ -98,14 +98,7 @@ impl Reaction {
 
         // Construct products
         // TODO: Add exceptions to the rules (example: Na + O2 = Na2O2 peroxyde)
-        let (metall_index, oxygen_index): (u8, u8);
-        let (metall_oxydation, oxygen_oxydation) = (*metall_element.valencies.last().unwrap(), 2u8); // yes, O2 has -2 oxydation state. +2 is used because it's easy to calculate
-
-        // Calculation of indexes.
-        // Idea: element_index = LCM / element_oxydation
-        let oxyd_lcm = lcm(metall_oxydation, oxygen_oxydation);
-        metall_index = oxyd_lcm / metall_oxydation;
-        oxygen_index = oxyd_lcm / oxygen_oxydation;
+        let (metall_index, oxygen_index) = calculate_indexes_for_2(*metall_element.valencies.last().unwrap(), 2u8);
 
         let oxygen_element = p_t.get("O").unwrap().clone();
 
@@ -131,4 +124,11 @@ fn get_simple_metall_from_reagents(reagents: &Vec<Substance>) -> Option<(String,
         }
     }
     None
+}
+
+// Calculation of indexes for two elements.
+// Idea: element_index = LCM(first_valence, second_valence) / element_oxydation
+fn calculate_indexes_for_2(first_valence: u8, second_valence: u8) -> (u8, u8) {
+    let oxyd_lcm = lcm(first_valence, second_valence);
+    (oxyd_lcm / first_valence, oxyd_lcm / second_valence)
 }
