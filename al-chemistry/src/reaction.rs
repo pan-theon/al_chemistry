@@ -38,9 +38,10 @@ impl Reaction {
             panic!("Supports reaction simulation only for 2 reagents")
         }
 
-        let reaction_class = Self::determine_class(&reagents);
+        let p_t = PeriodicTable::new();
+        let reaction_class = Self::determine_class(&reagents, &p_t);
         let products = match reaction_class {
-            ReactionClass::MetallOxygen => Self::metall_oxygen_reaction(reagents.clone()),
+            ReactionClass::MetallOxygen => Self::metall_oxygen_reaction(reagents.clone(), &p_t),
             ReactionClass::Unknown => panic!("Unknown reaction"),
         };
 
@@ -56,11 +57,9 @@ impl Reaction {
         }
     }
 
-    fn determine_class(reagents: &Vec<Substance>) -> ReactionClass {
-        let p_t = PeriodicTable::new().unwrap();
-
+    fn determine_class(reagents: &Vec<Substance>, p_t: &PeriodicTable) -> ReactionClass {
         // We can determine reaction class by this substances
-        let oxygen = Substance::from_string("O2", &p_t).unwrap();
+        let oxygen = Substance::from_string("O2", p_t).unwrap();
 
         // Characteristic of reagents
         let mut reagent_classes = Vec::<SC>::new(); // SubstanceClasses of reagents
@@ -90,9 +89,10 @@ impl Reaction {
     }
 
     // result: metall oxyde
-    fn metall_oxygen_reaction(reagents: Vec<Substance>) -> Vec<Result<Substance, &'static str>> {
-        let p_t = PeriodicTable::new().unwrap();
-
+    fn metall_oxygen_reaction(
+        reagents: Vec<Substance>,
+        p_t: &PeriodicTable,
+    ) -> Vec<Result<Substance, &'static str>> {
         // Get metall information
         let (metall_name, metall_element) = get_simple_metall_from_reagents(&reagents).unwrap();
 
