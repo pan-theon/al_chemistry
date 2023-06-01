@@ -5,7 +5,7 @@ use std::fmt;
 use crate::parser;
 use crate::periodic_table::PeriodicTable;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum SubstanceClass {
     Simple,
     Hydride,
