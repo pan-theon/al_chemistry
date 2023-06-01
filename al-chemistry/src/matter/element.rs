@@ -16,8 +16,7 @@ impl Element {
             if self.group < 11 + self.period {
                 res = true;
             }
-        }
-        else if self.group < 16 {
+        } else if self.group < 16 {
             res = true;
         }
         res

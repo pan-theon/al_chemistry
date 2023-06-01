@@ -1,5 +1,5 @@
-use crate::periodic_table::PeriodicTable;
 use crate::matter::{element::*, substance::*};
+use crate::periodic_table::PeriodicTable;
 
 #[test]
 fn periodic_table_get() {
@@ -42,11 +42,12 @@ fn periodic_table_add() {
     assert!(p_t.get(&"Fm").unwrap().charge != el.charge);
 
     for i in 0..not_elements.len() {
-        p_t.insert(not_elements[i].to_string(),
-                    Element {
-                        charge: 101 + i as u16,
-                        ..el.clone()
-                    }
+        p_t.insert(
+            not_elements[i].to_string(),
+            Element {
+                charge: 101 + i as u16,
+                ..el.clone()
+            },
         );
     }
     for name in not_elements {
@@ -76,7 +77,7 @@ fn substance_simple() {
         assert!(s.anti_me[a].index == 1);
         assert!(s.anti_me[a].oxidation_state == 0);
         assert!(s.me.len() == 0);
-    } 
+    }
     for name in not_elements {
         assert!(Substance::from_string(name, &p_t).is_err());
     }
@@ -129,7 +130,14 @@ fn substance_acid() {
 
 #[test]
 fn substance_salt() {
-    let s = vec!["NaCl", "NaHCO3", "Al(OH)CO3", "Al(OH)2I", "LiKRbPO4", "CsAuCl4"];
+    let s = vec![
+        "NaCl",
+        "NaHCO3",
+        "Al(OH)CO3",
+        "Al(OH)2I",
+        "LiKRbPO4",
+        "CsAuCl4",
+    ];
     let n_s = vec!["HCl", "Na(OH)"];
     let n = vec!["NaCl2", "CaPO4", "B5P3"];
 
@@ -141,9 +149,8 @@ fn is_substance_class(
     g_not_class: Vec<&str>,
     g_not_sb: Vec<&str>,
     class: SubstanceClass,
-    imp_anti_me: Vec<(&str, i8)>
-    )
-{
+    imp_anti_me: Vec<(&str, i8)>,
+) {
     let p_t = PeriodicTable::new();
     for c in g_class {
         let c = Substance::from_string(c, &p_t).unwrap();
@@ -158,7 +165,7 @@ fn is_substance_class(
         println!("{:#?}", Substance::from_string(n_c, &p_t).unwrap());
         assert!(Substance::from_string(n_c, &p_t).unwrap().class != class);
     }
-    
+
     for n in g_not_sb {
         assert!(Substance::from_string(n, &p_t).is_err());
     }

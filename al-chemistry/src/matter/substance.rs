@@ -162,7 +162,7 @@ impl Substance {
                     return Err(sbs);
                 }
                 oxy
-            },
+            }
             None => {
                 sbs.insert(h.0, h.1);
                 sbs.insert(sb.0, sb.1);
@@ -207,7 +207,7 @@ impl Substance {
                     return Err(sbs);
                 }
                 oxy
-            },
+            }
             None => {
                 sbs.insert(o.0, o.1);
                 sbs.insert(sb.0, sb.1);
@@ -262,7 +262,7 @@ impl Substance {
                     return Err(sbs);
                 }
                 oxy
-            },
+            }
             None => {
                 sbs.insert(o2.0, o2.1);
                 sbs.insert(sb.0, sb.1);
@@ -330,7 +330,7 @@ impl Substance {
                         return Err(sbs);
                     }
                     oxy
-                },
+                }
                 None => {
                     sbs.insert(o.0, o.1);
                     sbs.insert(h.0, h.1);
@@ -442,11 +442,9 @@ impl Substance {
         }
         let mut ox = match o {
             Some(o) => o,
-            None => {
-                match importants[0].is_empty() {
-                    true => return wrong_class(vec![me, anti_me], vec![h]),
-                    _ => anti_me.remove_entry(&importants[0]).unwrap(),
-                }
+            None => match importants[0].is_empty() {
+                true => return wrong_class(vec![me, anti_me], vec![h]),
+                _ => anti_me.remove_entry(&importants[0]).unwrap(),
             },
         };
         ox.1.oxidation_state = (ox.1.element.group as i8 - 18) * ox.1.index as i8;
@@ -465,16 +463,13 @@ impl Substance {
             println!("kuku");
             h.1.oxidation_state = 1;
             // try base salt
-            if ox.1.element.charge == 8
-                && (ox.1.index > h.1.index || !importants[0].is_empty())
-            {
+            if ox.1.element.charge == 8 && (ox.1.index > h.1.index || !importants[0].is_empty()) {
                 ox.1.oxidation_state = -2;
                 let mut o = None;
                 let mut res_start;
                 if ox.1.index > h.1.index {
                     res_start = (h.1.index as i16 - ox.1.index as i16) << 1;
-                }
-                else {
+                } else {
                     let mut oxi = anti_me.remove_entry(&importants[0]).unwrap();
                     oxi.1.oxidation_state = oxi.1.element.group as i8 - 18;
 

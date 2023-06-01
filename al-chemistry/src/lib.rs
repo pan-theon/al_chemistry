@@ -1,6 +1,6 @@
+mod math_util;
+mod matter;
 #[cfg(test)]
 mod module_tests;
-mod periodic_table;
-mod matter;
 mod parser;
-mod math_util;
+mod periodic_table;
