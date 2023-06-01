@@ -155,7 +155,14 @@ impl Substance {
         }
 
         sb.1.oxidation_state = match other_oxy(-1 * h.1.index as i8, sb.1.index) {
-            Some(oxy) => oxy,
+            Some(oxy) => {
+                if !sb.1.element.valencies.contains(&(oxy as u8)) {
+                    sbs.insert(h.0, h.1);
+                    sbs.insert(sb.0, sb.1);
+                    return Err(sbs);
+                }
+                oxy
+            },
             None => {
                 sbs.insert(h.0, h.1);
                 sbs.insert(sb.0, sb.1);
@@ -193,7 +200,14 @@ impl Substance {
 
         let mut sb = sbs.drain().next().unwrap();
         sb.1.oxidation_state = match other_oxy(-2 * o.1.index as i8, sb.1.index) {
-            Some(oxy) => oxy,
+            Some(oxy) => {
+                if !sb.1.element.valencies.contains(&(oxy as u8)) {
+                    sbs.insert(o.0, o.1);
+                    sbs.insert(sb.0, sb.1);
+                    return Err(sbs);
+                }
+                oxy
+            },
             None => {
                 sbs.insert(o.0, o.1);
                 sbs.insert(sb.0, sb.1);
@@ -241,7 +255,14 @@ impl Substance {
         }
 
         sb.1.oxidation_state = match other_oxy(-1 * o2.1.index as i8, sb.1.index) {
-            Some(oxy) => oxy,
+            Some(oxy) => {
+                if !sb.1.element.valencies.contains(&(oxy as u8)) {
+                    sbs.insert(o2.0, o2.1);
+                    sbs.insert(sb.0, sb.1);
+                    return Err(sbs);
+                }
+                oxy
+            },
             None => {
                 sbs.insert(o2.0, o2.1);
                 sbs.insert(sb.0, sb.1);
@@ -301,7 +322,15 @@ impl Substance {
 
         if o.1.index == h.1.index && sb.1.element.is_me() {
             sb.1.oxidation_state = match other_oxy(-1 * o.1.index as i8, sb.1.index) {
-                Some(oxy) => oxy,
+                Some(oxy) => {
+                    if !sb.1.element.valencies.contains(&(oxy as u8)) {
+                        sbs.insert(o.0, o.1);
+                        sbs.insert(h.0, h.1);
+                        sbs.insert(sb.0, sb.1);
+                        return Err(sbs);
+                    }
+                    oxy
+                },
                 None => {
                     sbs.insert(o.0, o.1);
                     sbs.insert(h.0, h.1);
@@ -339,8 +368,8 @@ impl Substance {
             if sb.1.element.group < 3 {
                 return wrong_class(vec![], vec![Some(h)]);
             }
-            if sb.1.element.group > 15
-                || sb.1.element.electronegativity > 2.8 && ox_eln < sb.1.element.electronegativity
+            if (sb.1.element.group > 15 || sb.1.element.electronegativity > 2.8)
+                && ox_eln < sb.1.element.electronegativity
             {
                 ox_eln = sb.1.element.electronegativity;
                 oxidant = sb.0.clone();
@@ -383,6 +412,7 @@ impl Substance {
         let mut anti_me = HashMap::new();
 
         let h = sbs.remove_entry("H");
+        let o = sbs.remove_entry("O");
 
         // oxidant and salt-forming Me for case of O
         // in case of sth like CuTiO₃ or Fe₂(CrO₄)₃
@@ -408,19 +438,23 @@ impl Substance {
 
         // there must be oxidant and Me
         if me.len() == 0 {
-            return wrong_class(vec![anti_me], vec![h]);
+            return wrong_class(vec![anti_me], vec![h, o]);
         }
-        let mut ox = match importants[0].is_empty() {
-            true => return wrong_class(vec![me, anti_me], vec![h]),
-            _ => anti_me.remove_entry(&importants[0]).unwrap(),
+        let mut ox = match o {
+            Some(o) => o,
+            None => {
+                match importants[0].is_empty() {
+                    true => return wrong_class(vec![me, anti_me], vec![h]),
+                    _ => anti_me.remove_entry(&importants[0]).unwrap(),
+                }
+            },
         };
-        ox.1.oxidation_state = ox.1.element.group as i8 - 18 * ox.1.index as i8;
+        ox.1.oxidation_state = (ox.1.element.group as i8 - 18) * ox.1.index as i8;
         if anti_me.len() == 0 {
-            let m = match importants[1].is_empty() {
-                true => return wrong_class(vec![me, anti_me], vec![h, Some(ox)]),
-                _ => me.remove_entry(&importants[1]).unwrap(),
-            };
-            anti_me.insert(m.0, m.1);
+            if !importants[1].is_empty() {
+                let m = me.remove_entry(&importants[1]).unwrap();
+                anti_me.insert(m.0, m.1);
+            }
         }
 
         let (mut mes_valency_variants, mut me_len);
@@ -428,17 +462,35 @@ impl Substance {
         let mut h_save = None;
         let mut me_start = 0;
         if let Some(mut h) = h {
+            println!("kuku");
             h.1.oxidation_state = 1;
             // try base salt
-            if ox.1.element.charge == 8 && ox.1.index > h.1.index {
+            if ox.1.element.charge == 8
+                && (ox.1.index > h.1.index || !importants[0].is_empty())
+            {
+                ox.1.oxidation_state = -2;
+                let mut o = None;
+                let mut res_start;
+                if ox.1.index > h.1.index {
+                    res_start = (h.1.index as i16 - ox.1.index as i16) << 1;
+                }
+                else {
+                    let mut oxi = anti_me.remove_entry(&importants[0]).unwrap();
+                    oxi.1.oxidation_state = oxi.1.element.group as i8 - 18;
+
+                    res_start = oxi.1.index as i16 * oxi.1.oxidation_state as i16;
+                    o = Some(oxi);
+                }
                 (mes_valency_variants, me_len) = valency_variants(&me, -(h.1.index as i16));
-                (res_valency_variants, res_len) =
-                    valency_variants(&anti_me, ((h.1.index - ox.1.index) as i16) << 1);
+                (res_valency_variants, res_len) = valency_variants(&anti_me, res_start);
                 for i in 0..mes_valency_variants.len() {
                     for j in 0..res_valency_variants.len() {
-                        if mes_valency_variants[i] == res_valency_variants[j] {
+                        if mes_valency_variants[i] == -res_valency_variants[j] {
                             valencies_by_variant(&mut me, i, me_len);
                             valencies_by_variant(&mut anti_me, j, res_len);
+                            if let Some(o) = o {
+                                anti_me.insert(o.0, o.1);
+                            }
                             anti_me.insert(ox.0, ox.1);
                             anti_me.insert(h.0, h.1);
                             return Ok(Self {
@@ -449,6 +501,10 @@ impl Substance {
                         }
                     }
                 }
+                if let Some(o) = o {
+                    anti_me.insert(o.0, o.1);
+                }
+                println!("{:#?}", anti_me);
             }
             me_start = h.1.index as i16;
             h_save = Some(h);
@@ -457,7 +513,7 @@ impl Substance {
         (res_valency_variants, res_len) = valency_variants(&anti_me, ox.1.oxidation_state as i16);
         for i in 0..mes_valency_variants.len() {
             for j in 0..res_valency_variants.len() {
-                if mes_valency_variants[i] == res_valency_variants[j] {
+                if mes_valency_variants[i] == -res_valency_variants[j] {
                     valencies_by_variant(&mut me, i, me_len);
                     valencies_by_variant(&mut anti_me, j, res_len);
                     anti_me.insert(ox.0, ox.1);

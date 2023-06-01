@@ -11,6 +11,15 @@ pub struct Element {
 
 impl Element {
     pub fn is_me(&self) -> bool {
-        (self.period < 6 && self.group < 11 + self.period) && self.group < 16
+        let mut res = false;
+        if self.period < 6 {
+            if self.group < 11 + self.period {
+                res = true;
+            }
+        }
+        else if self.group < 16 {
+            res = true;
+        }
+        res
     }
 }
