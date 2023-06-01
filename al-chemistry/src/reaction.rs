@@ -19,6 +19,7 @@ const ESMETALLS: [&str; 29] = [
 #[derive(Debug)]
 pub enum ReactionClass {
     MetallOxygen, // result: metall oxyde
+    MetallSulfur,
     Unknown,
 }
 
@@ -41,7 +42,8 @@ impl Reaction {
         let p_t = PeriodicTable::new();
         let reaction_class = Self::determine_class(&reagents, &p_t);
         let products = match reaction_class {
-            ReactionClass::MetallOxygen => Self::metall_oxygen_reaction(reagents.clone(), &p_t),
+            ReactionClass::MetallOxygen => Self::metall_oxygen_reaction(&reagents, &p_t),
+            ReactionClass::MetallSulfur => Self::metall_sulfur_reaction(&reagents, &p_t),
             ReactionClass::Unknown => panic!("Unknown reaction"),
         };
 
@@ -60,10 +62,12 @@ impl Reaction {
     fn determine_class(reagents: &Vec<Substance>, p_t: &PeriodicTable) -> ReactionClass {
         // We can determine reaction class by this substances
         let oxygen = Substance::from_string("O2", p_t).unwrap();
+        let sulfur = Substance::from_string("S", p_t).unwrap();
 
         // Characteristic of reagents
         let mut reagent_classes = Vec::<SC>::new(); // SubstanceClasses of reagents
         let mut contains_oxyde = false;
+        let mut contains_sulfur = false;
         let mut contains_metall = false;
 
         // Fill characteristics of reagents
@@ -72,11 +76,11 @@ impl Reaction {
 
             if substance.anti_me.len() == 0 && substance.me.len() > 0 {
                 contains_metall = true;
-            }
-
-            if substance.eq(&oxygen) {
+            } else if substance.eq(&oxygen) {
                 // reaction contains oxygen
                 contains_oxyde = true;
+            } else if substance.eq(&sulfur) {
+                contains_sulfur = true;
             }
         }
 
@@ -84,13 +88,17 @@ impl Reaction {
         if reagent_classes.contains(&SC::Simple) && contains_oxyde && contains_metall {
             return ReactionClass::MetallOxygen;
         }
+        // Me + S (Metall and Sulfur)
+        if reagent_classes.contains(&SC::Simple) && contains_sulfur && contains_metall {
+            return ReactionClass::MetallSulfur;
+        }
 
         ReactionClass::Unknown
     }
 
     // result: metall oxyde
     fn metall_oxygen_reaction(
-        reagents: Vec<Substance>,
+        reagents: &Vec<Substance>,
         p_t: &PeriodicTable,
     ) -> Vec<Result<Substance, &'static str>> {
         // Get metall information
@@ -98,7 +106,8 @@ impl Reaction {
 
         // Construct products
         // TODO: Add exceptions to the rules (example: Na + O2 = Na2O2 peroxyde)
-        let (metall_index, oxygen_index) = calculate_indexes_for_2(*metall_element.valencies.last().unwrap(), 2u8);
+        let (metall_index, oxygen_index) =
+            calculate_indexes_for_2(*metall_element.valencies.last().unwrap(), 2u8);
 
         let oxygen_element = p_t.get("O").unwrap().clone();
 
@@ -112,6 +121,32 @@ impl Reaction {
             SubstanceBlock::new(oxygen_element, oxygen_index, 0),
         );
 
+        vec![Substance::from_elements(map)]
+    }
+
+    fn metall_sulfur_reaction(
+        reagents: &Vec<Substance>,
+        p_t: &PeriodicTable,
+    ) -> Vec<Result<Substance, &'static str>> {
+        // Get metall information
+        let (metall_name, metall_element) = get_simple_metall_from_reagents(&reagents).unwrap();
+
+        // Construct products
+        // NOTE: Substance can't construct Fe2S3
+        let (metall_index, sulfur_index) =
+            calculate_indexes_for_2(*metall_element.valencies.last().unwrap(), 2u8);
+
+        let sulfur_element = p_t.get("S").unwrap().clone();
+
+        let mut map: HashMap<String, SubstanceBlock> = HashMap::new();
+        map.insert(
+            metall_name,
+            SubstanceBlock::new(metall_element, metall_index, 0),
+        );
+        map.insert(
+            "S".to_string(),
+            SubstanceBlock::new(sulfur_element, sulfur_index, 0),
+        );
         vec![Substance::from_elements(map)]
     }
 }

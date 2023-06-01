@@ -39,6 +39,12 @@ fn main() {
     ]);
     dbg!(reaction);
 
+    let reaction = Reaction::try_calculate_from(vec![
+        Substance::from_string("Fe", &periodic_table).unwrap(),
+        Substance::from_string("S", &periodic_table).unwrap(),
+    ]);
+    dbg!(reaction);
+
     /*
     let alohco3 = Substance::from_string(&"Al(OH)CO3", &periodic_table).unwrap();
     assert!(alohco3.class == SubstanceClass::Salt);
