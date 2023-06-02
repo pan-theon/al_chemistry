@@ -1,3 +1,4 @@
+#[inline]
 pub fn gcd(mut a: u8, mut b: u8) -> u8 {
     if b > a {
         (a, b) = (b, a);
@@ -9,6 +10,7 @@ pub fn gcd(mut a: u8, mut b: u8) -> u8 {
     }
 }
 
+#[inline]
 pub fn lcm(a: u8, b: u8) -> u8 {
     a * b / gcd(a, b)
 }
