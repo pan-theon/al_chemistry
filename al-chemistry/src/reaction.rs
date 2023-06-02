@@ -9,8 +9,6 @@ use crate::{
     periodic_table::PeriodicTable,
 };
 
-static NO_REACTION: &str = "No reaction";
-
 // Electrochmical series of metalls. Where:
 // from left to right the standard electrochemical potential increases
 const ESMETALLS: [&str; 29] = [
@@ -24,6 +22,7 @@ pub enum ReactionType {
     Decomposition,
     Exchange,
     Substition,
+    None,
 }
 
 #[derive(Debug)]
@@ -106,7 +105,7 @@ impl Reaction {
 
         // Exceptions to the rules
         match (ame_element.charge, me_element.charge) {
-            (8, 47 | 78 | 79) => return Err(NO_REACTION), // Oxyd and Ag Pt Au
+            (8, 47 | 78 | 79) => return Ok((vec![], ReactionType::None)), // Oxyd and Ag Pt Au
             _ => (),
         }
 
@@ -116,7 +115,7 @@ impl Reaction {
             (3..=5, true) => me_element.group as i8, // statistics + logic
             (6, true) => me_element.valencies[(me_element.valencies.len() - 1) / 2] as i8, // statistics
             (_, true) => *me_element.valencies.last().unwrap() as i8,                      // xd
-            (_, false) => return Err(NO_REACTION),
+            (_, false) => return Ok((vec![], ReactionType::None)),
         };
 
         // Try to guess oxydation of anti metall
