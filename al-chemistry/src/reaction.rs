@@ -116,7 +116,7 @@ impl Reaction {
             (3..=5, true) => me_element.group as i8, // statistics + logic
             (6, true) => me_element.valencies[(me_element.valencies.len() - 1) / 2] as i8, // statistics
             (_, true) => *me_element.valencies.last().unwrap() as i8,                      // xd
-            (_, _) => return Err(NO_REACTION),
+            (_, false) => return Err(NO_REACTION),
         };
 
         // Try to guess oxydation of anti metall
