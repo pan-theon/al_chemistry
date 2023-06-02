@@ -55,9 +55,9 @@ impl Reaction {
         };
 
         Ok(Self {
-            reagents: reagents,
+            reagents,
             heating,
-            products: products,
+            products,
             rtype,
         })
     }
