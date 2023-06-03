@@ -111,6 +111,8 @@ impl Reaction {
             Ok(Self::reaction_me_antime)
         } else if reagents.len() == 2 && contains_simple_me && contains_water {
             Ok(Self::reaction_me_water)
+        } else if reagents.len() == 2 && contains_simple_me && reagent_classes[&SC::Acid] == 1 {
+            Ok(Self::reaction_me_acid)
         } else {
             Err(&"Unknown class of reaction")
         }
@@ -217,7 +219,41 @@ impl Reaction {
             let hydrogen = Substance::from_string("H2", p_t).unwrap();
 
             return Ok((vec![oxyde, hydrogen], rtype));
-        } else { // non_active_metall + water or no heating = no reaction
+        } else {
+            // non_active_metall + water or no heating = no reaction
+            return Ok((vec![], ReactionType::None));
+        }
+    }
+
+    fn reaction_me_acid(
+        reagents: &Vec<Substance>,
+        heating: bool,
+        p_t: &PeriodicTable,
+    ) -> Result<(Vec<Substance>, ReactionType), &'static str> {
+        let rtype = ReactionType::Substition;
+        let (me_name, me_element) = get_simple_me_from_reagents(reagents);
+
+        if ACTIVE_METALLS.contains(&me_name.as_str())
+            || MEDIUM_ACTIVE_METALLS.contains(&me_name.as_str())
+        {
+            let (mut map, acid_r_oxydation) = get_acid_residue(reagents);
+
+            let me_oxydation = *me_element.valencies.first().unwrap() as i8;
+            let (me_index, acid_r_index) = calculate_indexes_for_2(me_oxydation, acid_r_oxydation);
+            for (_, block) in map.iter_mut() {
+                block.index *= acid_r_index;
+            }
+
+            map.insert(me_name, SB::new(me_element, me_index, 0));
+
+            let substance_salt = Substance::from_elements(map).unwrap();
+            let substance_hydrogen = Substance::from_string("H2", p_t).unwrap();
+
+            return Ok((
+                vec![substance_salt, substance_hydrogen],
+                ReactionType::Substition,
+            ));
+        } else {
             return Ok((vec![], ReactionType::None));
         }
     }
@@ -246,6 +282,24 @@ fn get_substance_from_reagents(
         }
     }
     None
+}
+
+fn get_acid_residue(reagents: &Vec<Substance>) -> (HashMap<String, SB>, i8) {
+    let mut map = HashMap::new();
+    let mut acid_residue_valence = 0;
+    for reagent in reagents {
+        if reagent.anti_me.len() > 1 && reagent.me.len() == 0 {
+            for (name, block) in reagent.anti_me.iter() {
+                if block.element.charge != 1 {
+                    // != H
+                    map.insert(name.clone(), block.clone());
+                } else {
+                    acid_residue_valence = (block.index as i8) * -1;
+                }
+            }
+        }
+    }
+    (map, acid_residue_valence)
 }
 
 // Calculation of indexes for two elements.
