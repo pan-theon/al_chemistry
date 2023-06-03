@@ -17,7 +17,7 @@ const MEDIUM_ACTIVE_METALLS: [&str; 12] = [
 ];
 const NON_ACTIVE_METALLS: [&str; 8] = ["Sb", "Bi", "Cu", "Hg", "Ag", "Pd", "Pt", "Au"];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ReactionType {
     Combination,
     Decomposition,

@@ -4,3 +4,4 @@ mod matter;
 mod module_tests;
 mod parser;
 mod periodic_table;
+mod reaction;
