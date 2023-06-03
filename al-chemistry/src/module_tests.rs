@@ -186,7 +186,10 @@ fn reaction_me_antime() {
     .unwrap();
 
     assert_eq!(ReactionType::Combination, reaction.rtype);
-    assert_eq!(Substance::from_string("Al2O3", &p_t).unwrap().clone(), reaction.products.first().unwrap().clone());
+    assert_eq!(
+        Substance::from_string("Al2O3", &p_t).unwrap().clone(),
+        reaction.products.first().unwrap().clone()
+    );
 
     let reaction = Reaction::try_calculate_from(
         vec![
@@ -210,7 +213,10 @@ fn reaction_me_antime() {
     .unwrap();
 
     assert_eq!(ReactionType::Combination, reaction.rtype);
-    assert_eq!(Substance::from_string("NaCl", &p_t).unwrap().clone(), reaction.products.first().unwrap().clone());
+    assert_eq!(
+        Substance::from_string("NaCl", &p_t).unwrap().clone(),
+        reaction.products.first().unwrap().clone()
+    );
 }
 
 #[test]
@@ -227,8 +233,12 @@ fn reaction_me_water() {
     .unwrap();
 
     assert_eq!(ReactionType::Substition, reaction.rtype);
-    assert!(reaction.products.contains(&Substance::from_string("H2", &p_t).unwrap()));
-    assert!(reaction.products.contains(&Substance::from_string("Fe2O3", &p_t).unwrap()));
+    assert!(reaction
+        .products
+        .contains(&Substance::from_string("H2", &p_t).unwrap()));
+    assert!(reaction
+        .products
+        .contains(&Substance::from_string("Fe2O3", &p_t).unwrap()));
 
     let reaction = Reaction::try_calculate_from(
         vec![
@@ -252,8 +262,12 @@ fn reaction_me_water() {
     .unwrap();
 
     assert_eq!(ReactionType::Substition, reaction.rtype);
-    assert!(reaction.products.contains(&Substance::from_string("H2", &p_t).unwrap()));
-    assert!(reaction.products.contains(&Substance::from_string("LiOH", &p_t).unwrap()));
+    assert!(reaction
+        .products
+        .contains(&Substance::from_string("H2", &p_t).unwrap()));
+    assert!(reaction
+        .products
+        .contains(&Substance::from_string("LiOH", &p_t).unwrap()));
 }
 
 #[test]
@@ -270,8 +284,12 @@ fn reaction_me_acid() {
     .unwrap();
 
     assert_eq!(ReactionType::Substition, reaction.rtype);
-    assert!(reaction.products.contains(&Substance::from_string("H2", &p_t).unwrap()));
-    assert!(reaction.products.contains(&Substance::from_string("CaSO4", &p_t).unwrap()));
+    assert!(reaction
+        .products
+        .contains(&Substance::from_string("H2", &p_t).unwrap()));
+    assert!(reaction
+        .products
+        .contains(&Substance::from_string("CaSO4", &p_t).unwrap()));
 
     let reaction = Reaction::try_calculate_from(
         vec![
@@ -283,6 +301,10 @@ fn reaction_me_acid() {
     .unwrap();
 
     assert_eq!(ReactionType::Substition, reaction.rtype);
-    assert!(reaction.products.contains(&Substance::from_string("H2", &p_t).unwrap()));
-    assert!(reaction.products.contains(&Substance::from_string("Al2(SO4)3", &p_t).unwrap()));
+    assert!(reaction
+        .products
+        .contains(&Substance::from_string("H2", &p_t).unwrap()));
+    assert!(reaction
+        .products
+        .contains(&Substance::from_string("Al2(SO4)3", &p_t).unwrap()));
 }
