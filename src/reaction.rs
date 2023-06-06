@@ -309,3 +309,145 @@ fn calculate_indexes_for_2(first_oxydation: i8, second_oxydation: i8) -> (u8, u8
     let lcm = lcm(first_oxydation, second_oxydation);
     (lcm / first_oxydation, lcm / second_oxydation)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reaction_me_antime() {
+        let p_t = PeriodicTable::new();
+
+        let reaction = Reaction::try_calculate_from(
+            vec![
+                Substance::from_string("Al", &p_t).unwrap(),
+                Substance::from_string("O2", &p_t).unwrap(),
+            ],
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(ReactionType::Combination, reaction.rtype);
+        assert_eq!(
+            Substance::from_string("Al2O3", &p_t).unwrap().clone(),
+            reaction.products.first().unwrap().clone()
+        );
+
+        let reaction = Reaction::try_calculate_from(
+            vec![
+                Substance::from_string("Fe", &p_t).unwrap(),
+                Substance::from_string("O2", &p_t).unwrap(),
+            ],
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(ReactionType::None, reaction.rtype);
+        assert_eq!(0, reaction.products.len());
+
+        let reaction = Reaction::try_calculate_from(
+            vec![
+                Substance::from_string("Na", &p_t).unwrap(),
+                Substance::from_string("Cl2", &p_t).unwrap(),
+            ],
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(ReactionType::Combination, reaction.rtype);
+        assert_eq!(
+            Substance::from_string("NaCl", &p_t).unwrap().clone(),
+            reaction.products.first().unwrap().clone()
+        );
+    }
+
+    #[test]
+    fn reaction_me_water() {
+        let p_t = PeriodicTable::new();
+
+        let reaction = Reaction::try_calculate_from(
+            vec![
+                Substance::from_string("Fe", &p_t).unwrap(),
+                Substance::from_string("H2O", &p_t).unwrap(),
+            ],
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(ReactionType::Substition, reaction.rtype);
+        assert!(reaction
+            .products
+            .contains(&Substance::from_string("H2", &p_t).unwrap()));
+        assert!(reaction
+            .products
+            .contains(&Substance::from_string("Fe2O3", &p_t).unwrap()));
+
+        let reaction = Reaction::try_calculate_from(
+            vec![
+                Substance::from_string("Pt", &p_t).unwrap(),
+                Substance::from_string("H2O", &p_t).unwrap(),
+            ],
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(ReactionType::None, reaction.rtype);
+        assert_eq!(reaction.products.len(), 0);
+
+        let reaction = Reaction::try_calculate_from(
+            vec![
+                Substance::from_string("Li", &p_t).unwrap(),
+                Substance::from_string("H2O", &p_t).unwrap(),
+            ],
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(ReactionType::Substition, reaction.rtype);
+        assert!(reaction
+            .products
+            .contains(&Substance::from_string("H2", &p_t).unwrap()));
+        assert!(reaction
+            .products
+            .contains(&Substance::from_string("LiOH", &p_t).unwrap()));
+    }
+
+    #[test]
+    fn reaction_me_acid() {
+        let p_t = PeriodicTable::new();
+
+        let reaction = Reaction::try_calculate_from(
+            vec![
+                Substance::from_string("Ca", &p_t).unwrap(),
+                Substance::from_string("H2SO4", &p_t).unwrap(),
+            ],
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(ReactionType::Substition, reaction.rtype);
+        assert!(reaction
+            .products
+            .contains(&Substance::from_string("H2", &p_t).unwrap()));
+        assert!(reaction
+            .products
+            .contains(&Substance::from_string("CaSO4", &p_t).unwrap()));
+
+        let reaction = Reaction::try_calculate_from(
+            vec![
+                Substance::from_string("Al", &p_t).unwrap(),
+                Substance::from_string("H2SO4", &p_t).unwrap(),
+            ],
+            true,
+        )
+        .unwrap();
+
+        assert_eq!(ReactionType::Substition, reaction.rtype);
+        assert!(reaction
+            .products
+            .contains(&Substance::from_string("H2", &p_t).unwrap()));
+        assert!(reaction
+            .products
+            .contains(&Substance::from_string("Al2(SO4)3", &p_t).unwrap()));
+    }
+}
