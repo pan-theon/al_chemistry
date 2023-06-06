@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
 use crate::{
-    math_util::lcm,
     matter::{
         element::Element,
         substance::{Substance, SubstanceBlock as SB, SubstanceClass as SC},
     },
-    periodic_table::PeriodicTable,
+    utils::{math_util::lcm, periodic_table::PeriodicTable},
 };
 
 // Electrochmical series of metalls. Where:

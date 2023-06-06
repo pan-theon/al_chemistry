@@ -1,4 +1,4 @@
-use crate::{matter::substance::SubstanceBlock, periodic_table::PeriodicTable};
+use crate::{matter::substance::SubstanceBlock, utils::periodic_table::PeriodicTable};
 use std::collections::HashMap;
 
 // no regex, as other not-really-needed third-party crates

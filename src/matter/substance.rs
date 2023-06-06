@@ -2,8 +2,7 @@ use super::element::Element;
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::parser;
-use crate::periodic_table::PeriodicTable;
+use crate::utils::{parser, periodic_table::PeriodicTable};
 
 #[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub enum SubstanceClass {

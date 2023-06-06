@@ -1,6 +1,6 @@
 use crate::matter::{element::*, substance::*};
-use crate::periodic_table::PeriodicTable;
 use crate::reaction::{Reaction, ReactionType};
+use crate::utils::periodic_table::PeriodicTable;
 
 #[test]
 fn periodic_table_get() {
